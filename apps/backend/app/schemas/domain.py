@@ -668,6 +668,98 @@ class ExplainabilityReport(BaseModel):
 
 
 # =============================================================================
+# Core Intelligence (Prototype)
+# =============================================================================
+
+class RiskLevel(str, Enum):
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+    RED_ZONE = "RED_ZONE"
+
+
+class RiskFactors(BaseModel):
+    """Individual risk factor contributions."""
+    vulnerability_score: float
+    flood_exposure: float
+    erosion_exposure: float
+    storm_surge_exposure: float
+    population_factor: float
+    accessibility_factor: float
+
+
+class RiskAssessmentResponse(BaseModel):
+    """Risk assessment for a single habitation."""
+    habitation_id: str
+    habitation_name: str
+    total_score: float
+    risk_level: RiskLevel
+    factors: RiskFactors
+    explanation: str
+
+
+class RiskAssessmentListResponse(BaseModel):
+    assessments: List[RiskAssessmentResponse]
+    total: int
+    red_zone_count: int
+    high_risk_count: int
+    medium_risk_count: int
+    low_risk_count: int
+
+
+class CapacityConstraintResponse(BaseModel):
+    """Individual capacity constraint."""
+    name: str
+    available: int
+    is_limiting: bool = False
+
+
+class EffectiveCapacityResponse(BaseModel):
+    """Effective capacity calculation result."""
+    site_id: str
+    site_name: str
+    physical_capacity: int
+    effective_capacity: int
+    limiting_constraint: str
+    constraints: List[CapacityConstraintResponse]
+    explanation: str
+
+
+class EffectiveCapacityListResponse(BaseModel):
+    capacities: List[EffectiveCapacityResponse]
+    total: int
+
+
+class RouteFeasibilityResponse(BaseModel):
+    """Route feasibility result."""
+    habitation_id: str
+    site_id: str
+    feasible: bool
+    distance_km: Optional[float] = None
+    travel_time_min: Optional[float] = None
+    reason: str
+    route_used: Optional[str] = None
+    bottlenecks: List[str] = Field(default_factory=list)
+
+
+class RouteFeasibilityListResponse(BaseModel):
+    routes: List[RouteFeasibilityResponse]
+    total: int
+    feasible_count: int
+    infeasible_count: int
+
+
+class ExplainabilityReport(BaseModel):
+    plan_id: str
+    generated_at: datetime
+    risk_assessment: RiskAssessment
+    capacity_analysis: CapacityAnalysis
+    route_analysis: RouteAnalysis
+    optimization_rationale: OptimizationRationale
+    sensitivity_analysis: SensitivityAnalysis
+
+
+# =============================================================================
 # List Response Wrappers
 # =============================================================================
 
