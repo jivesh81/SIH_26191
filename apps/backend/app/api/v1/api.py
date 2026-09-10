@@ -1,15 +1,10 @@
 from fastapi import APIRouter
 
+from app.api.v1.endpoints import core
+
 api_router = APIRouter()
 
-# Health
-@api_router.get("/health", tags=["Health"])
-async def health():
-    return {"status": "ok"}
+# Health check
+api_router.include_router(core.router, tags=["Core"])
 
-# TODO: Add API routes
-# from app.api.v1.endpoints import geo, optimize, simulate, audit
-# api_router.include_router(geo.router, prefix="/geo", tags=["GIS"])
-# api_router.include_router(optimize.router, prefix="/optimize", tags=["Optimization"])
-# api_router.include_router(simulate.router, prefix="/simulate", tags=["Simulation"])
-# api_router.include_router(audit.router, prefix="/audit", tags=["Audit"])
+# API routes are mounted under /api/v1 in main.py

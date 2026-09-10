@@ -4,20 +4,23 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.core.config import settings
-from app.db.session import init_db, close_db
+from app.api.v1.api import api_router
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await init_db()
+    # No database initialization needed for local demo data
+    # Database initialization would go here when PostgreSQL/PostGIS is added
     yield
-    await close_db()
 
 
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
-    description="Aapda Setu - Disaster Management Decision Support System API",
+    description="Aapda Setu - Disaster Management Decision Support System API\n\n"
+                "**Note**: This API serves synthetic/demo data for Barpeta district, Assam. "
+                "All data is synthetic and for SIH 2026 demonstration purposes only. "
+                "NOT official government data.",
     openapi_url=f"{settings.API_V1_PREFIX}/openapi.json",
     docs_url=f"{settings.API_V1_PREFIX}/docs",
     redoc_url=f"{settings.API_V1_PREFIX}/redoc",
@@ -39,6 +42,7 @@ async def health_check():
         "status": "healthy",
         "service": settings.APP_NAME,
         "version": settings.APP_VERSION,
+        "data_mode": "local_synthetic_demo",
     }
 
 
@@ -58,6 +62,5 @@ async def global_exception_handler(request, exc):
     )
 
 
-# API routes will be imported here
-# from app.api.v1 import api_router
-# app.include_router(api_router, prefix=settings.API_V1_PREFIX)
+# Include API router
+app.include_router(api_router, prefix=settings.API_V1_PREFIX)
