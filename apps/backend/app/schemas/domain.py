@@ -760,6 +760,48 @@ class ExplainabilityReport(BaseModel):
 
 
 # =============================================================================
+# Relocation Optimization
+# =============================================================================
+
+class RelocationAssignmentResponse(BaseModel):
+    """Single habitation-to-site assignment in optimization result."""
+    habitation_id: str
+    habitation_name: str
+    assigned_site_id: str
+    assigned_site_name: str
+    population: int
+    priority_rank: Optional[int]
+    route_status: str
+    route_id: Optional[str] = None
+    distance_km: Optional[float] = None
+    travel_time_min: Optional[float] = None
+    site_remaining_capacity: int
+
+
+class SiteCapacitySummary(BaseModel):
+    """Site capacity summary in optimization result."""
+    site_id: str
+    site_name: str
+    max_capacity: int
+    current_allocation: int
+    allocated_population: int
+    remaining_capacity: int
+    assigned_habitations: List[str] = Field(default_factory=list)
+
+
+class RelocationOptimizationResponse(BaseModel):
+    """Complete relocation optimization response."""
+    status: OptimizationStatus
+    assignments: List[RelocationAssignmentResponse]
+    total_assigned_population: int
+    total_unmet_population: int
+    site_capacities: Dict[str, SiteCapacitySummary]
+    infeasibility_reasons: List[InfeasibilityReason] = Field(default_factory=list)
+    computation_time_ms: float
+    solver_stats: Dict[str, Any] = Field(default_factory=dict)
+
+
+# =============================================================================
 # List Response Wrappers
 # =============================================================================
 

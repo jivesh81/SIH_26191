@@ -29,6 +29,7 @@ from app.schemas.domain import (
     RouteFeasibilityResponse,
     RouteFeasibilityListResponse,
     RiskLevel,
+    RelocationOptimizationResponse,
 )
 
 from app.services.data_layer import (
@@ -60,6 +61,8 @@ from app.services.intelligence import (
     check_all_routes_for_site,
     check_all_routes_from_habitation,
 )
+
+from app.services.optimization import run_relocation_optimization
 
 router = APIRouter()
 
@@ -873,3 +876,50 @@ async def get_routes_to_site(site_id: str):
         feasible_count=feasible_count,
         infeasible_count=infeasible_count,
     )
+
+
+# =============================================================================
+# Relocation Optimization
+# =============================================================================
+
+@router.post(
+    "/optimization/relocation",
+    response_model=RelocationOptimizationResponse,
+    tags=["Optimization"],
+    summary="Run relocation optimization",
+    description=(
+        "Generates feasible relocation assignments for vulnerable habitations "
+        "to relocation sites using CP-SAT solver. Returns INFEASIBLE with "
+        "bottleneck reasons when full relocation is impossible."
+    ),
+)
+async def run_optimization(
+    habitation_ids: Optional[List[str]] = Query(
+        None,
+        description="Specific habitation IDs to optimize (default: all accessible)",
+    ),
+    site_ids: Optional[List[str]] = Query(
+        None,
+        description="Specific site IDs to consider (default: all with capacity)",
+    ),
+    time_limit_seconds: int = Query(
+        30,
+        ge=5,
+        le=300,
+        description="Solver time limit in seconds",
+    ),
+):
+    """
+    Run relocation optimization for given habitations and sites.
+  
+    Returns:
+    - assignments: habitation, assigned site, population, priority, route status
+    - site_remaining_capacity, total_assigned, total_unmet
+    - INFEASIBLE status with machine-readable reason when not all population can be assigned
+    """
+    result = run_relocation_optimization(
+        habitation_ids=habitation_ids,
+        site_ids=site_ids,
+        time_limit_seconds=time_limit_seconds,
+    )
+    return result
