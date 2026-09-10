@@ -1,0 +1,381 @@
+{
+  "type": "FeatureCollection",
+  "name": "barpeta_population_grid",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "grid_0",
+      "properties": {
+        "id": "grid_0",
+        "population": 12500,
+        "vulnerability_index": 0.72,
+        "habitation_type": "rural",
+        "households": 2500,
+        "female_population": 6100,
+        "child_population": 3800,
+        "elderly_population": 900,
+        "disabled_population": 150
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [90.90, 26.20],
+          [91.00, 26.20],
+          [91.00, 26.30],
+          [90.90, 26.30],
+          [90.90, 26.20]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "grid_1",
+      "properties": {
+        "id": "grid_1",
+        "population": 15200,
+        "vulnerability_index": 0.68,
+        "habitation_type": "rural",
+        "households": 3040,
+        "female_population": 7400,
+        "child_population": 4600,
+        "elderly_population": 1100,
+        "disabled_population": 180
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [91.00, 26.20],
+          [91.10, 26.20],
+          [91.10, 26.30],
+          [91.00, 26.30],
+          [91.00, 26.20]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "grid_2",
+      "properties": {
+        "id": "grid_2",
+        "population": 18500,
+        "vulnerability_index": 0.75,
+        "habitation_type": "rural",
+        "households": 3700,
+        "female_population": 9000,
+        "child_population": 5600,
+        "elderly_population": 1300,
+        "disabled_population": 220
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [91.10, 26.20],
+          [91.20, 26.20],
+          [91.20, 26.30],
+          [91.10, 26.30],
+          [91.10, 26.20]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "grid_3",
+      "properties": {
+        "id": "grid_3",
+        "population": 9800,
+        "vulnerability_index": 0.82,
+        "habitation_type": "rural",
+        "households": 1960,
+        "female_population": 4750,
+        "child_population": 3000,
+        "elderly_population": 700,
+        "disabled_population": 120
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [90.80, 26.30],
+          [90.90, 26.30],
+          [90.90, 26.40],
+          [90.80, 26.40],
+          [90.80, 26.30]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "grid_4",
+      "properties": {
+        "id": "grid_4",
+        "population": 14200,
+        "vulnerability_index": 0.65,
+        "habitation_type": "urban",
+        "households": 2840,
+        "female_population": 6900,
+        "child_population": 4200,
+        "elderly_population": 1000,
+        "disabled_population": 160
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [90.90, 26.30],
+          [91.00, 26.30],
+          [91.00, 26.40],
+          [90.90, 26.40],
+          [90.90, 26.30]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "grid_5",
+      "properties": {
+        "id": "grid_5",
+        "population": 11800,
+        "vulnerability_index": 0.70,
+        "habitation_type": "rural",
+        "households": 2360,
+        "female_population": 5700,
+        "child_population": 3500,
+        "elderly_population": 850,
+        "disabled_population": 140
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [91.00, 26.30],
+          [91.10, 26.30],
+          [91.10, 26.40],
+          [91.00, 26.40],
+          [91.00, 26.30]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "grid_6",
+      "properties": {
+        "id": "grid_6",
+        "population": 13500,
+        "vulnerability_index": 0.78,
+        "habitation_type": "rural",
+        "households": 2700,
+        "female_population": 6600,
+        "child_population": 4100,
+        "elderly_population": 950,
+        "disabled_population": 170
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [91.10, 26.30],
+          [91.20, 26.30],
+          [91.20, 26.40],
+          [91.10, 26.40],
+          [91.10, 26.30]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "grid_7",
+      "properties": {
+        "id": "grid_7",
+        "population": 8500,
+        "vulnerability_index": 0.85,
+        "habitation_type": "rural",
+        "households": 1700,
+        "female_population": 4100,
+        "child_population": 2600,
+        "elderly_population": 600,
+        "disabled_population": 100
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [90.70, 26.40],
+          [90.80, 26.40],
+          [90.80, 26.50],
+          [90.70, 26.50],
+          [90.70, 26.40]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "grid_8",
+      "properties": {
+        "id": "grid_8",
+        "population": 12800,
+        "vulnerability_index": 0.73,
+        "habitation_type": "rural",
+        "households": 2560,
+        "female_population": 6200,
+        "child_population": 3900,
+        "elderly_population": 900,
+        "disabled_population": 150
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [90.80, 26.40],
+          [90.90, 26.40],
+          [90.90, 26.50],
+          [90.80, 26.50],
+          [90.80, 26.40]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "grid_9",
+      "properties": {
+        "id": "grid_9",
+        "population": 10500,
+        "vulnerability_index": 0.69,
+        "habitation_type": "rural",
+        "households": 2100,
+        "female_population": 5100,
+        "child_population": 3200,
+        "elderly_population": 750,
+        "disabled_population": 130
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [90.90, 26.40],
+          [91.00, 26.40],
+          [91.00, 26.50],
+          [90.90, 26.50],
+          [90.90, 26.40]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "grid_10",
+      "properties": {
+        "id": "grid_10",
+        "population": 9200,
+        "vulnerability_index": 0.76,
+        "habitation_type": "rural",
+        "households": 1840,
+        "female_population": 4450,
+        "child_population": 2800,
+        "elderly_population": 650,
+        "disabled_population": 110
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [91.00, 26.40],
+          [91.10, 26.40],
+          [91.10, 26.50],
+          [91.00, 26.50],
+          [91.00, 26.40]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "grid_11",
+      "properties": {
+        "id": "grid_11",
+        "population": 11200,
+        "vulnerability_index": 0.80,
+        "habitation_type": "rural",
+        "households": 2240,
+        "female_population": 5450,
+        "child_population": 3400,
+        "elderly_population": 800,
+        "disabled_population": 140
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [91.10, 26.40],
+          [91.20, 26.40],
+          [91.20, 26.50],
+          [91.10, 26.50],
+          [91.10, 26.40]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "grid_12",
+      "properties": {
+        "id": "grid_12",
+        "population": 7800,
+        "vulnerability_index": 0.88,
+        "habitation_type": "rural",
+        "households": 1560,
+        "female_population": 3800,
+        "child_population": 2400,
+        "elderly_population": 550,
+        "disabled_population": 90
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [90.60, 26.50],
+          [90.70, 26.50],
+          [90.70, 26.60],
+          [90.60, 26.60],
+          [90.60, 26.50]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "grid_13",
+      "properties": {
+        "id": "grid_13",
+        "population": 10800,
+        "vulnerability_index": 0.74,
+        "habitation_type": "rural",
+        "households": 2160,
+        "female_population": 5250,
+        "child_population": 3300,
+        "elderly_population": 750,
+        "disabled_population": 120
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [90.70, 26.50],
+          [90.80, 26.50],
+          [90.80, 26.60],
+          [90.70, 26.60],
+          [90.70, 26.50]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "grid_14",
+      "properties": {
+        "id": "grid_14",
+        "population": 9500,
+        "vulnerability_index": 0.71,
+        "habitation_type": "rural",
+        "households": 1900,
+        "female_population": 4600,
+        "child_population": 2900,
+        "elderly_population": 680,
+        "disabled_population": 110
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [90.80, 26.50],
+          [90.90, 26.50],
+          [90.90, 26.60],
+          [90.80, 26.60],
+          [90.80, 26.50]
+        ]]
+      }
+    }
+  ]
+}

@@ -1,0 +1,182 @@
+{
+  "type": "FeatureCollection",
+  "name": "barpeta_blocks",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "block_barpeta",
+      "properties": {
+        "id": "block_barpeta",
+        "name": "Barpeta",
+        "level": "block",
+        "parent_id": "barpeta_district",
+        "area_sqkm": 450,
+        "population": 285000
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [90.95, 26.25],
+          [91.15, 26.25],
+          [91.15, 26.45],
+          [90.95, 26.45],
+          [90.95, 26.25]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "block_bajali",
+      "properties": {
+        "id": "block_bajali",
+        "name": "Bajali",
+        "level": "block",
+        "parent_id": "barpeta_district",
+        "area_sqkm": 380,
+        "population": 210000
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [91.15, 26.25],
+          [91.35, 26.25],
+          [91.35, 26.45],
+          [91.15, 26.45],
+          [91.15, 26.25]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "block_chenga",
+      "properties": {
+        "id": "block_chenga",
+        "name": "Chenga",
+        "level": "block",
+        "parent_id": "barpeta_district",
+        "area_sqkm": 420,
+        "population": 195000
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [90.75, 26.35],
+          [90.95, 26.35],
+          [90.95, 26.55],
+          [90.75, 26.55],
+          [90.75, 26.35]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "block_goberadhana",
+      "properties": {
+        "id": "block_goberadhana",
+        "name": "Goberadhana",
+        "level": "block",
+        "parent_id": "barpeta_district",
+        "area_sqkm": 390,
+        "population": 180000
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [90.95, 26.45],
+          [91.15, 26.45],
+          [91.15, 26.65],
+          [90.95, 26.65],
+          [90.95, 26.45]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "block_mandia",
+      "properties": {
+        "id": "block_mandia",
+        "name": "Mandia",
+        "level": "block",
+        "parent_id": "barpeta_district",
+        "area_sqkm": 410,
+        "population": 220000
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [90.55, 26.45],
+          [90.75, 26.45],
+          [90.75, 26.65],
+          [90.55, 26.65],
+          [90.55, 26.45]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "block_pakabetbari",
+      "properties": {
+        "id": "block_pakabetbari",
+        "name": "Pakabetbari",
+        "level": "block",
+        "parent_id": "barpeta_district",
+        "area_sqkm": 360,
+        "population": 175000
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [91.15, 26.45],
+          [91.35, 26.45],
+          [91.35, 26.65],
+          [91.15, 26.65],
+          [91.15, 26.45]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "block_rupsi",
+      "properties": {
+        "id": "block_rupsi",
+        "name": "Rupsi",
+        "level": "block",
+        "parent_id": "barpeta_district",
+        "area_sqkm": 340,
+        "population": 165000
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [90.75, 26.55],
+          [90.95, 26.55],
+          [90.95, 26.75],
+          [90.75, 26.75],
+          [90.75, 26.55]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "block_sarbhog",
+      "properties": {
+        "id": "block_sarbhog",
+        "name": "Sarbhog",
+        "level": "block",
+        "parent_id": "barpeta_district",
+        "area_sqkm": 350,
+        "population": 163190
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [91.15, 26.65],
+          [91.35, 26.65],
+          [91.35, 26.85],
+          [91.15, 26.85],
+          [91.15, 26.65]
+        ]]
+      }
+    }
+  ]
+}

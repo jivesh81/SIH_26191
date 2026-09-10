@@ -1,0 +1,180 @@
+{
+  "type": "FeatureCollection",
+  "name": "barpeta_relocation_sites",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "site_001",
+      "properties": {
+        "id": "site_001",
+        "name": "Barpeta Higher Ground - North",
+        "area_sqkm": 2.5,
+        "max_capacity": 5000,
+        "current_allocation": 0,
+        "suitability_score": 0.92,
+        "elevation_m": 52,
+        "flood_risk": "none",
+        "land_ownership": "government",
+        "infrastructure_ready": true,
+        "water_available": true,
+        "power_available": true,
+        "road_access": true
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [91.00, 26.40],
+          [91.08, 26.40],
+          [91.08, 26.45],
+          [91.00, 26.45],
+          [91.00, 26.40]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "site_002",
+      "properties": {
+        "id": "site_002",
+        "name": "Howly Elevated Plains",
+        "area_sqkm": 1.8,
+        "max_capacity": 3500,
+        "current_allocation": 0,
+        "suitability_score": 0.88,
+        "elevation_m": 49,
+        "flood_risk": "low",
+        "land_ownership": "government",
+        "infrastructure_ready": true,
+        "water_available": true,
+        "power_available": true,
+        "road_access": true
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [91.15, 26.30],
+          [91.22, 26.30],
+          [91.22, 26.35],
+          [91.15, 26.35],
+          [91.15, 26.30]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "site_003",
+      "properties": {
+        "id": "site_003",
+        "name": "Bajali Safe Zone",
+        "area_sqkm": 2.2,
+        "max_capacity": 4200,
+        "current_allocation": 0,
+        "suitability_score": 0.85,
+        "elevation_m": 50,
+        "flood_risk": "low",
+        "land_ownership": "community",
+        "infrastructure_ready": false,
+        "water_available": true,
+        "power_available": false,
+        "road_access": true
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [91.25, 26.38],
+          [91.32, 26.38],
+          [91.32, 26.43],
+          [91.25, 26.43],
+          [91.25, 26.38]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "site_004",
+      "properties": {
+        "id": "site_004",
+        "name": "Chenga Upland Area",
+        "area_sqkm": 1.5,
+        "max_capacity": 2800,
+        "current_allocation": 0,
+        "suitability_score": 0.82,
+        "elevation_m": 54,
+        "flood_risk": "none",
+        "land_ownership": "government",
+        "infrastructure_ready": true,
+        "water_available": true,
+        "power_available": true,
+        "road_access": true
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [90.80, 26.52],
+          [90.87, 26.52],
+          [90.87, 26.56],
+          [90.80, 26.56],
+          [90.80, 26.52]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "site_005",
+      "properties": {
+        "id": "site_005",
+        "name": "Mandia High Ground",
+        "area_sqkm": 1.2,
+        "max_capacity": 2200,
+        "current_allocation": 0,
+        "suitability_score": 0.79,
+        "elevation_m": 51,
+        "flood_risk": "low",
+        "land_ownership": "private",
+        "infrastructure_ready": false,
+        "water_available": true,
+        "power_available": false,
+        "road_access": true
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [90.60, 26.58],
+          [90.66, 26.58],
+          [90.66, 26.62],
+          [90.60, 26.62],
+          [90.60, 26.58]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "site_006",
+      "properties": {
+        "id": "site_006",
+        "name": "Rupsi Plateau",
+        "area_sqkm": 1.0,
+        "max_capacity": 1800,
+        "current_allocation": 0,
+        "suitability_score": 0.90,
+        "elevation_m": 58,
+        "flood_risk": "none",
+        "land_ownership": "government",
+        "infrastructure_ready": true,
+        "water_available": true,
+        "power_available": true,
+        "road_access": false
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [90.78, 26.72],
+          [90.83, 26.72],
+          [90.83, 26.75],
+          [90.78, 26.75],
+          [90.78, 26.72]
+        ]]
+      }
+    }
+  ]
+}

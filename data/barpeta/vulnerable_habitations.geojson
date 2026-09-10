@@ -1,0 +1,278 @@
+{
+  "type": "FeatureCollection",
+  "name": "barpeta_vulnerable_habitations",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "hab_001",
+      "properties": {
+        "id": "hab_001",
+        "name": "Bhella Gaon",
+        "population": 1250,
+        "vulnerability_score": 0.88,
+        "hazard_exposure": [
+          {"hazard_type": "flood", "severity": "high"},
+          {"hazard_type": "erosion", "severity": "medium"}
+        ],
+        "nearest_shelter_id": "shelter_rc_mandia",
+        "nearest_shelter_distance_m": 3200,
+        "evacuation_route_id": "route_mandia_1",
+        "is_accessible": true,
+        "priority_rank": 1
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [90.62, 26.53]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "hab_002",
+      "properties": {
+        "id": "hab_002",
+        "name": "Kalgachia",
+        "population": 1800,
+        "vulnerability_score": 0.85,
+        "hazard_exposure": [
+          {"hazard_type": "flood", "severity": "high"},
+          {"hazard_type": "erosion", "severity": "high"}
+        ],
+        "nearest_shelter_id": "shelter_rc_chenga",
+        "nearest_shelter_distance_m": 2800,
+        "evacuation_route_id": "route_chenga_1",
+        "is_accessible": true,
+        "priority_rank": 2
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [90.83, 26.44]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "hab_003",
+      "properties": {
+        "id": "hab_003",
+        "name": "Mandia Gaon",
+        "population": 950,
+        "vulnerability_score": 0.82,
+        "hazard_exposure": [
+          {"hazard_type": "flood", "severity": "high"}
+        ],
+        "nearest_shelter_id": "shelter_rc_mandia",
+        "nearest_shelter_distance_m": 1500,
+        "evacuation_route_id": "route_mandia_1",
+        "is_accessible": true,
+        "priority_rank": 3
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [90.67, 26.56]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "hab_004",
+      "properties": {
+        "id": "hab_004",
+        "name": "Chenga Bazar",
+        "population": 2100,
+        "vulnerability_score": 0.79,
+        "hazard_exposure": [
+          {"hazard_type": "flood", "severity": "medium"},
+          {"hazard_type": "erosion", "severity": "low"}
+        ],
+        "nearest_shelter_id": "shelter_rc_chenga",
+        "nearest_shelter_distance_m": 800,
+        "evacuation_route_id": "route_chenga_1",
+        "is_accessible": true,
+        "priority_rank": 4
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [90.86, 26.48]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "hab_005",
+      "properties": {
+        "id": "hab_005",
+        "name": "Goberadhana",
+        "population": 1650,
+        "vulnerability_score": 0.77,
+        "hazard_exposure": [
+          {"hazard_type": "flood", "severity": "high"},
+          {"hazard_type": "erosion", "severity": "medium"}
+        ],
+        "nearest_shelter_id": "shelter_rc_chenga",
+        "nearest_shelter_distance_m": 4500,
+        "evacuation_route_id": "route_goberadhana_1",
+        "is_accessible": true,
+        "priority_rank": 5
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [91.02, 26.52]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "hab_006",
+      "properties": {
+        "id": "hab_006",
+        "name": "Rupsi Char",
+        "population": 800,
+        "vulnerability_score": 0.90,
+        "hazard_exposure": [
+          {"hazard_type": "flood", "severity": "extreme"},
+          {"hazard_type": "erosion", "severity": "high"}
+        ],
+        "nearest_shelter_id": "shelter_rc_rupsi",
+        "nearest_shelter_distance_m": 1200,
+        "evacuation_route_id": "route_rupsi_1",
+        "is_accessible": false,
+        "priority_rank": 6
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [90.83, 26.70]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "hab_007",
+      "properties": {
+        "id": "hab_007",
+        "name": "Barpeta Road",
+        "population": 3200,
+        "vulnerability_score": 0.72,
+        "hazard_exposure": [
+          {"hazard_type": "flood", "severity": "medium"}
+        ],
+        "nearest_shelter_id": "shelter_rc_barpeta",
+        "nearest_shelter_distance_m": 2200,
+        "evacuation_route_id": "route_barpeta_1",
+        "is_accessible": true,
+        "priority_rank": 7
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [91.03, 26.30]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "hab_008",
+      "properties": {
+        "id": "hab_008",
+        "name": "Howly Town",
+        "population": 2800,
+        "vulnerability_score": 0.68,
+        "hazard_exposure": [
+          {"hazard_type": "flood", "severity": "medium"}
+        ],
+        "nearest_shelter_id": "shelter_rc_howly",
+        "nearest_shelter_distance_m": 1800,
+        "evacuation_route_id": "route_howly_1",
+        "is_accessible": true,
+        "priority_rank": 8
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [91.13, 26.27]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "hab_009",
+      "properties": {
+        "id": "hab_009",
+        "name": "Pathsala",
+        "population": 2400,
+        "vulnerability_score": 0.74,
+        "hazard_exposure": [
+          {"hazard_type": "flood", "severity": "medium"},
+          {"hazard_type": "storm_surge", "severity": "low"}
+        ],
+        "nearest_shelter_id": "shelter_rc_bajali",
+        "nearest_shelter_distance_m": 3500,
+        "evacuation_route_id": "route_bajali_1",
+        "is_accessible": true,
+        "priority_rank": 9
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [91.22, 26.32]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "hab_010",
+      "properties": {
+        "id": "hab_010",
+        "name": "Sarbhog",
+        "population": 1950,
+        "vulnerability_score": 0.71,
+        "hazard_exposure": [
+          {"hazard_type": "flood", "severity": "low"},
+          {"hazard_type": "storm_surge", "severity": "low"}
+        ],
+        "nearest_shelter_id": "shelter_rc_bajali",
+        "nearest_shelter_distance_m": 4200,
+        "evacuation_route_id": "route_sarbhog_1",
+        "is_accessible": true,
+        "priority_rank": 10
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [91.28, 26.70]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "hab_011",
+      "properties": {
+        "id": "hab_011",
+        "name": "Barnagar",
+        "population": 1400,
+        "vulnerability_score": 0.80,
+        "hazard_exposure": [
+          {"hazard_type": "flood", "severity": "high"}
+        ],
+        "nearest_shelter_id": "shelter_rc_howly",
+        "nearest_shelter_distance_m": 2500,
+        "evacuation_route_id": "route_howly_1",
+        "is_accessible": true,
+        "priority_rank": 11
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [91.10, 26.25]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "hab_012",
+      "properties": {
+        "id": "hab_012",
+        "name": "Pakabetbari",
+        "population": 1100,
+        "vulnerability_score": 0.76,
+        "hazard_exposure": [
+          {"hazard_type": "flood", "severity": "medium"},
+          {"hazard_type": "erosion", "severity": "medium"}
+        ],
+        "nearest_shelter_id": "shelter_rc_bajali",
+        "nearest_shelter_distance_m": 3800,
+        "evacuation_route_id": "route_pakabetbari_1",
+        "is_accessible": true,
+        "priority_rank": 12
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [91.25, 26.50]
+      }
+    }
+  ]
+}

@@ -1,0 +1,234 @@
+{
+  "type": "FeatureCollection",
+  "name": "barpeta_shelters",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "shelter_rc_barpeta",
+      "properties": {
+        "id": "shelter_rc_barpeta",
+        "name": "Barpeta Relief Camp - Town Hall",
+        "shelter_type": "relief_camp",
+        "capacity": 500,
+        "current_occupancy": 120,
+        "effective_capacity": 450,
+        "facilities": ["water", "sanitation", "medical", "kitchen", "power_backup"],
+        "manager_contact": "+91-3665-234XXX",
+        "is_active": true,
+        "elevation_m": 42,
+        "flood_level_m": 40
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [91.00, 26.33]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "shelter_rc_howly",
+      "properties": {
+        "id": "shelter_rc_howly",
+        "name": "Howly Relief Camp - Community Center",
+        "shelter_type": "relief_camp",
+        "capacity": 300,
+        "current_occupancy": 80,
+        "effective_capacity": 280,
+        "facilities": ["water", "sanitation", "medical", "kitchen"],
+        "manager_contact": "+91-3665-256XXX",
+        "is_active": true,
+        "elevation_m": 45,
+        "flood_level_m": 41
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [91.12, 26.28]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "shelter_rc_bajali",
+      "properties": {
+        "id": "shelter_rc_bajali",
+        "name": "Bajali Relief Camp - College Ground",
+        "shelter_type": "relief_camp",
+        "capacity": 400,
+        "current_occupancy": 200,
+        "effective_capacity": 350,
+        "facilities": ["water", "sanitation", "medical", "kitchen", "power_backup"],
+        "manager_contact": "+91-3665-278XXX",
+        "is_active": true,
+        "elevation_m": 48,
+        "flood_level_m": 43
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [91.25, 26.35]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "shelter_rc_chenga",
+      "properties": {
+        "id": "shelter_rc_chenga",
+        "name": "Chenga Relief Camp - High School",
+        "shelter_type": "relief_camp",
+        "capacity": 250,
+        "current_occupancy": 60,
+        "effective_capacity": 230,
+        "facilities": ["water", "sanitation", "medical", "kitchen"],
+        "manager_contact": "+91-3665-290XXX",
+        "is_active": true,
+        "elevation_m": 52,
+        "flood_level_m": 48
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [90.85, 26.47]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "shelter_rc_mandia",
+      "properties": {
+        "id": "shelter_rc_mandia",
+        "name": "Mandia Relief Camp - Panchayat Hall",
+        "shelter_type": "relief_camp",
+        "capacity": 350,
+        "current_occupancy": 150,
+        "effective_capacity": 320,
+        "facilities": ["water", "sanitation", "medical", "kitchen"],
+        "manager_contact": "+91-3665-312XXX",
+        "is_active": true,
+        "elevation_m": 46,
+        "flood_level_m": 42
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [90.65, 26.55]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "shelter_rc_rupsi",
+      "properties": {
+        "id": "shelter_rc_rupsi",
+        "name": "Rupsi Relief Camp - Cyclone Shelter",
+        "shelter_type": "cyclone_shelter",
+        "capacity": 200,
+        "current_occupancy": 40,
+        "effective_capacity": 190,
+        "facilities": ["water", "sanitation", "medical", "power_backup", "communication"],
+        "manager_contact": "+91-3665-334XXX",
+        "is_active": true,
+        "elevation_m": 55,
+        "flood_level_m": 50
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [90.82, 26.68]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "shelter_school_1",
+      "properties": {
+        "id": "shelter_school_1",
+        "name": "Barpeta Girls High School",
+        "shelter_type": "school",
+        "capacity": 200,
+        "current_occupancy": 0,
+        "effective_capacity": 180,
+        "facilities": ["water", "sanitation", "kitchen"],
+        "is_active": true,
+        "elevation_m": 44,
+        "flood_level_m": 40
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [91.02, 26.32]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "shelter_school_2",
+      "properties": {
+        "id": "shelter_school_2",
+        "name": "Bajali Higher Secondary School",
+        "shelter_type": "school",
+        "capacity": 300,
+        "current_occupancy": 0,
+        "effective_capacity": 270,
+        "facilities": ["water", "sanitation", "kitchen", "power_backup"],
+        "is_active": true,
+        "elevation_m": 49,
+        "flood_level_m": 44
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [91.23, 26.33]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "shelter_hospital_1",
+      "properties": {
+        "id": "shelter_hospital_1",
+        "name": "Barpeta Civil Hospital",
+        "shelter_type": "hospital",
+        "capacity": 100,
+        "current_occupancy": 50,
+        "effective_capacity": 90,
+        "facilities": ["water", "sanitation", "medical", "power_backup", "icu", "ambulance"],
+        "manager_contact": "+91-3665-232XXX",
+        "is_active": true,
+        "elevation_m": 43,
+        "flood_level_m": 39
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [90.99, 26.34]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "shelter_hospital_2",
+      "properties": {
+        "id": "shelter_hospital_2",
+        "name": "Fakhruddin Ali Ahmed Medical College",
+        "shelter_type": "hospital",
+        "capacity": 150,
+        "current_occupancy": 80,
+        "effective_capacity": 130,
+        "facilities": ["water", "sanitation", "medical", "power_backup", "icu", "ambulance", "trauma_center"],
+        "manager_contact": "+91-3665-240XXX",
+        "is_active": true,
+        "elevation_m": 47,
+        "flood_level_m": 42
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [91.28, 26.38]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "shelter_cc_1",
+      "properties": {
+        "id": "shelter_cc_1",
+        "name": "Barpeta Town Community Center",
+        "shelter_type": "community_center",
+        "capacity": 150,
+        "current_occupancy": 0,
+        "effective_capacity": 135,
+        "facilities": ["water", "sanitation", "kitchen"],
+        "is_active": true,
+        "elevation_m": 43,
+        "flood_level_m": 39
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [90.98, 26.31]
+      }
+    }
+  ]
+}

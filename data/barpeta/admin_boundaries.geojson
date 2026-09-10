@@ -1,0 +1,27 @@
+{
+  "type": "FeatureCollection",
+  "name": "barpeta_district_boundary",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "barpeta_district",
+      "properties": {
+        "id": "barpeta_district",
+        "name": "Barpeta District",
+        "level": "district",
+        "area_sqkm": 3245,
+        "population": 1693190
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [90.55, 26.10],
+          [91.45, 26.10],
+          [91.45, 26.85],
+          [90.55, 26.85],
+          [90.55, 26.10]
+        ]]
+      }
+    }
+  ]
+}

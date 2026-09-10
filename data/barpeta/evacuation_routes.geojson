@@ -1,0 +1,275 @@
+{
+  "type": "FeatureCollection",
+  "name": "barpeta_evacuation_routes",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "route_barpeta_1",
+      "properties": {
+        "id": "route_barpeta_1",
+        "name": "Barpeta Town - NH31 Corridor",
+        "route_type": "primary",
+        "length_km": 8.5,
+        "travel_time_min": 18,
+        "capacity_per_hour": 500,
+        "current_load": 120,
+        "status": "open",
+        "bridge_dependencies": ["bridge_beki"],
+        "last_assessment": "2024-03-01"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [91.03, 26.30],
+          [91.00, 26.31],
+          [90.99, 26.33]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "route_barpeta_2",
+      "properties": {
+        "id": "route_barpeta_2",
+        "name": "Barpeta Town - District Road Alt",
+        "route_type": "alternative",
+        "length_km": 12.2,
+        "travel_time_min": 28,
+        "capacity_per_hour": 200,
+        "current_load": 30,
+        "status": "open",
+        "bridge_dependencies": [],
+        "last_assessment": "2024-03-01"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [91.03, 26.30],
+          [91.05, 26.28],
+          [91.02, 26.25],
+          [90.99, 26.33]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "route_howly_1",
+      "properties": {
+        "id": "route_howly_1",
+        "name": "Howly - SH15 Direct",
+        "route_type": "primary",
+        "length_km": 6.2,
+        "travel_time_min": 14,
+        "capacity_per_hour": 400,
+        "current_load": 80,
+        "status": "open",
+        "bridge_dependencies": ["bridge_chaulkhowa"],
+        "last_assessment": "2024-03-01"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [91.13, 26.27],
+          [91.12, 26.29],
+          [91.10, 26.31],
+          [91.12, 26.28]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "route_chenga_1",
+      "properties": {
+        "id": "route_chenga_1",
+        "name": "Chenga - District Road to Relief Camp",
+        "route_type": "primary",
+        "length_km": 4.8,
+        "travel_time_min": 12,
+        "capacity_per_hour": 300,
+        "current_load": 60,
+        "status": "open",
+        "bridge_dependencies": ["culvert_1"],
+        "last_assessment": "2024-03-01"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [90.83, 26.44],
+          [90.84, 26.46],
+          [90.85, 26.47]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "route_mandia_1",
+      "properties": {
+        "id": "route_mandia_1",
+        "name": "Mandia - Rural Road to Camp",
+        "route_type": "primary",
+        "length_km": 3.5,
+        "travel_time_min": 10,
+        "capacity_per_hour": 250,
+        "current_load": 45,
+        "status": "open",
+        "bridge_dependencies": [],
+        "last_assessment": "2024-03-01"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [90.67, 26.56],
+          [90.66, 26.55],
+          [90.65, 26.55]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "route_mandia_2",
+      "properties": {
+        "id": "route_mandia_2",
+        "name": "Mandia - Alternative via NH31",
+        "route_type": "alternative",
+        "length_km": 15.0,
+        "travel_time_min": 35,
+        "capacity_per_hour": 150,
+        "current_load": 20,
+        "status": "open",
+        "bridge_dependencies": ["bridge_kaldia"],
+        "last_assessment": "2024-03-01"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [90.67, 26.56],
+          [90.70, 26.54],
+          [90.80, 26.50],
+          [90.85, 26.50],
+          [90.65, 26.55]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "route_goberadhana_1",
+      "properties": {
+        "id": "route_goberadhana_1",
+        "name": "Goberadhana - Rural Road",
+        "route_type": "primary",
+        "length_km": 12.5,
+        "travel_time_min": 30,
+        "capacity_per_hour": 180,
+        "current_load": 40,
+        "status": "open",
+        "bridge_dependencies": ["bridge_kaldia"],
+        "last_assessment": "2024-03-01"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [91.02, 26.52],
+          [90.98, 26.51],
+          [90.90, 26.50],
+          [90.85, 26.47]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "route_rupsi_1",
+      "properties": {
+        "id": "route_rupsi_1",
+        "name": "Rupsi Char - Access Road",
+        "route_type": "primary",
+        "length_km": 3.2,
+        "travel_time_min": 15,
+        "capacity_per_hour": 100,
+        "current_load": 15,
+        "status": "impassable",
+        "bridge_dependencies": ["culvert_2"],
+        "last_assessment": "2024-03-01"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [90.83, 26.70],
+          [90.82, 26.69],
+          [90.82, 26.68]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "route_bajali_1",
+      "properties": {
+        "id": "route_bajali_1",
+        "name": "Pathsala - SH15 to Bajali Camp",
+        "route_type": "primary",
+        "length_km": 7.8,
+        "travel_time_min": 16,
+        "capacity_per_hour": 350,
+        "current_load": 70,
+        "status": "open",
+        "bridge_dependencies": ["bridge_chaulkhowa"],
+        "last_assessment": "2024-03-01"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [91.22, 26.32],
+          [91.23, 26.33],
+          [91.25, 26.35]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "route_sarbhog_1",
+      "properties": {
+        "id": "route_sarbhog_1",
+        "name": "Sarbhog - NH31 Corridor",
+        "route_type": "primary",
+        "length_km": 18.5,
+        "travel_time_min": 38,
+        "capacity_per_hour": 250,
+        "current_load": 50,
+        "status": "open",
+        "bridge_dependencies": ["bridge_manas"],
+        "last_assessment": "2024-03-01"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [91.28, 26.70],
+          [91.30, 26.65],
+          [91.30, 26.55]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "route_pakabetbari_1",
+      "properties": {
+        "id": "route_pakabetbari_1",
+        "name": "Pakabetbari - Rural Connector",
+        "route_type": "primary",
+        "length_km": 9.2,
+        "travel_time_min": 22,
+        "capacity_per_hour": 200,
+        "current_load": 30,
+        "status": "open",
+        "bridge_dependencies": [],
+        "last_assessment": "2024-03-01"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [91.25, 26.50],
+          [91.24, 26.45],
+          [91.25, 26.35]
+        ]
+      }
+    }
+  ]
+}

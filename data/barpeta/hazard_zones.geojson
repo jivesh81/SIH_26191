@@ -1,0 +1,180 @@
+{
+  "type": "FeatureCollection",
+  "name": "barpeta_hazard_zones",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "flood_high_1",
+      "properties": {
+        "id": "flood_high_1",
+        "hazard_type": "flood",
+        "severity": "high",
+        "return_period_years": 25,
+        "source": "modelled",
+        "last_updated": "2024-01-15"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [90.90, 26.20],
+          [91.20, 26.20],
+          [91.20, 26.40],
+          [90.90, 26.40],
+          [90.90, 26.20]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "flood_high_2",
+      "properties": {
+        "id": "flood_high_2",
+        "hazard_type": "flood",
+        "severity": "high",
+        "return_period_years": 25,
+        "source": "modelled",
+        "last_updated": "2024-01-15"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [90.60, 26.40],
+          [90.90, 26.40],
+          [90.90, 26.60],
+          [90.60, 26.60],
+          [90.60, 26.40]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "flood_medium_1",
+      "properties": {
+        "id": "flood_medium_1",
+        "hazard_type": "flood",
+        "severity": "medium",
+        "return_period_years": 50,
+        "source": "modelled",
+        "last_updated": "2024-01-15"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [90.85, 26.15],
+          [91.25, 26.15],
+          [91.25, 26.35],
+          [90.85, 26.35],
+          [90.85, 26.15]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "flood_medium_2",
+      "properties": {
+        "id": "flood_medium_2",
+        "hazard_type": "flood",
+        "severity": "medium",
+        "return_period_years": 50,
+        "source": "modelled",
+        "last_updated": "2024-01-15"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [90.55, 26.50],
+          [90.95, 26.50],
+          [90.95, 26.70],
+          [90.55, 26.70],
+          [90.55, 26.50]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "flood_low_1",
+      "properties": {
+        "id": "flood_low_1",
+        "hazard_type": "flood",
+        "severity": "low",
+        "return_period_years": 100,
+        "source": "modelled",
+        "last_updated": "2024-01-15"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [91.20, 26.30],
+          [91.45, 26.30],
+          [91.45, 26.50],
+          [91.20, 26.50],
+          [91.20, 26.30]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "erosion_zone_1",
+      "properties": {
+        "id": "erosion_zone_1",
+        "hazard_type": "erosion",
+        "severity": "high",
+        "source": "satellite",
+        "last_updated": "2024-03-10"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [91.05, 26.18],
+          [91.15, 26.18],
+          [91.15, 26.28],
+          [91.05, 26.28],
+          [91.05, 26.18]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "erosion_zone_2",
+      "properties": {
+        "id": "erosion_zone_2",
+        "hazard_type": "erosion",
+        "severity": "medium",
+        "source": "satellite",
+        "last_updated": "2024-03-10"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [90.65, 26.52],
+          [90.75, 26.52],
+          [90.75, 26.62],
+          [90.65, 26.62],
+          [90.65, 26.52]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "storm_surge_1",
+      "properties": {
+        "id": "storm_surge_1",
+        "hazard_type": "storm_surge",
+        "severity": "medium",
+        "return_period_years": 50,
+        "source": "modelled",
+        "last_updated": "2024-01-15"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [90.55, 26.10],
+          [90.75, 26.10],
+          [90.75, 26.25],
+          [90.55, 26.25],
+          [90.55, 26.10]
+        ]]
+      }
+    }
+  ]
+}
