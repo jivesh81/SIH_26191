@@ -16,6 +16,7 @@ export function Sidebar({ children, position = 'left', defaultOpen = true, width
   const toggleRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     const handleResize = () => {
       if (window.innerWidth < 768) {
         setIsOpen(false);
@@ -58,7 +59,7 @@ export function Sidebar({ children, position = 'left', defaultOpen = true, width
           </div>
           <div className="h-full overflow-y-auto">{children}</div>
         </aside>
-        {isOpen && window.innerWidth < 768 && (
+        {isOpen && typeof window !== 'undefined' && window.innerWidth < 768 && (
           <div className="fixed inset-0 z-10 bg-black/20 sm:hidden" onClick={toggle} aria-hidden="true" />
         )}
       </>

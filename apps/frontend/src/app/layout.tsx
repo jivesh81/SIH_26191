@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { QueryProvider } from '@/components/providers/QueryProvider';
 
 export const metadata: Metadata = {
   title: 'Aapda Setu | Disaster Management Decision Support',
@@ -7,7 +8,6 @@ export const metadata: Metadata = {
   keywords: ['disaster management', 'flood', 'relocation', 'optimization', 'GIS', 'Barpeta', 'Assam'],
 };
 
-// Force dynamic rendering for all pages in this layout
 export const dynamic = 'force-dynamic';
 
 export default function RootLayout({
@@ -17,7 +17,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-slate-50">{children}</body>
+      <body className="min-h-screen bg-slate-50">
+        <QueryProvider>{children}</QueryProvider>
+      </body>
     </html>
   );
 }
