@@ -5,12 +5,15 @@ from fastapi.responses import JSONResponse
 
 from app.core.config import settings
 from app.api.v1.api import api_router
+from app.services.events import event_service
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # No database initialization needed for local demo data
     # Database initialization would go here when PostgreSQL/PostGIS is added
+    # Initialize the initial relocation plan
+    event_service.create_initial_plan()
     yield
 
 

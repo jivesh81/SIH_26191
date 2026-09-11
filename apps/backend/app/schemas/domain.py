@@ -525,6 +525,59 @@ class SimulationResult(BaseModel):
 
 
 # =============================================================================
+# Dynamic Events & Plan Versioning
+# =============================================================================
+
+class PlanStatus(str, Enum):
+    ACTIVE = "active"
+    INVALID = "invalid"
+    SUPERSEDED = "superseded"
+
+
+class PlanVersionResponse(BaseModel):
+    version: int
+    plan_id: str
+    status: PlanStatus
+    total_assigned_population: int
+    total_unmet_population: int
+    optimization_status: OptimizationStatus
+    created_at: datetime
+    invalidated_at: Optional[datetime] = None
+    invalidation_reason: Optional[str] = None
+    affected_assignments: List[str] = Field(default_factory=list)
+    affected_sites: List[str] = Field(default_factory=list)
+    affected_routes: List[str] = Field(default_factory=list)
+
+
+class EventTriggerResponse(BaseModel):
+    event_id: str
+    event_type: EventType
+    timestamp: datetime
+    plan_invalidated: bool
+    previous_plan: Optional[PlanVersionResponse] = None
+    new_plan: Optional[PlanVersionResponse] = None
+    message: Optional[str] = None
+
+
+class EventLogEntry(BaseModel):
+    event_id: str
+    event_type: EventType
+    timestamp: datetime
+    metadata: Dict[str, Any]
+    result: Dict[str, Any]
+
+
+class EventLogResponse(BaseModel):
+    events: List[EventLogEntry]
+    total: int
+
+
+class ActivePlanResponse(BaseModel):
+    plan: Optional[PlanVersionResponse] = None
+    all_versions: List[PlanVersionResponse] = Field(default_factory=list)
+
+
+# =============================================================================
 # Optimization
 # =============================================================================
 

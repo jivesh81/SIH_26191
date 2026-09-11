@@ -30,6 +30,10 @@ from app.schemas.domain import (
     RouteFeasibilityListResponse,
     RiskLevel,
     RelocationOptimizationResponse,
+    PlanVersionResponse,
+    EventTriggerResponse,
+    EventLogResponse,
+    ActivePlanResponse,
 )
 
 from app.services.data_layer import (
@@ -63,6 +67,7 @@ from app.services.intelligence import (
 )
 
 from app.services.optimization import run_relocation_optimization
+from app.services.events import event_service, EventService
 
 router = APIRouter()
 
@@ -923,3 +928,108 @@ async def run_optimization(
         time_limit_seconds=time_limit_seconds,
     )
     return result
+
+
+# =============================================================================
+# Dynamic Events & Plan Versioning
+# =============================================================================
+
+@router.post(
+    "/events/trigger",
+    response_model=EventTriggerResponse,
+    tags=["Events"],
+    summary="Trigger a disaster event",
+    description=(
+        "Triggers a disaster event (bridge_collapse or capacity_reduction) "
+        "which may invalidate the active relocation plan and trigger re-optimization."
+    ),
+)
+async def trigger_event(event: DisasterEvent):
+    """
+    Trigger a disaster event and handle plan invalidation/re-optimization.
+    
+    Returns:
+    - event details
+    - whether plan was invalidated
+    - previous plan info (if invalidated)
+    - new plan info (if re-optimized)
+    """
+    result = event_service.trigger_event(event)
+    
+    # Flatten the event data for the response schema
+    event_data = result["event"]
+    return EventTriggerResponse(
+        event_id=event_data["event_id"],
+        event_type=event_data["event_type"],
+        timestamp=event_data["timestamp"],
+        plan_invalidated=result["plan_invalidated"],
+        previous_plan=result["previous_plan"],
+        new_plan=result["new_plan"],
+        message=result.get("message"),
+    )
+
+
+@router.get(
+    "/events",
+    response_model=EventLogResponse,
+    tags=["Events"],
+    summary="Get event log",
+    description="Returns the log of all triggered disaster events.",
+)
+async def get_event_log():
+    """Get the log of all triggered disaster events."""
+    events = [
+        EventLogEntry(**e) for e in event_service._event_log
+    ]
+    return EventLogResponse(events=events, total=len(events))
+
+
+@router.get(
+    "/plan/active",
+    response_model=ActivePlanResponse,
+    tags=["Plan"],
+    summary="Get active relocation plan",
+    description="Returns the current active relocation plan and all plan versions.",
+)
+async def get_active_plan():
+    """Get the active relocation plan and version history."""
+    active = event_service.get_active_plan()
+    all_plans = event_service.get_all_plans()
+    
+    active_response = None
+    if active:
+        result = active.optimization_result
+        active_response = PlanVersionResponse(
+            version=active.version,
+            plan_id=active.plan_id,
+            status=active.status,
+            total_assigned_population=result.total_assigned_population,
+            total_unmet_population=result.total_unmet_population,
+            optimization_status=result.status,
+            created_at=active.created_at,
+            invalidated_at=active.invalidated_at,
+            invalidation_reason=active.invalidation_reason,
+            affected_assignments=active.affected_assignments,
+            affected_sites=active.affected_sites,
+            affected_routes=active.affected_routes,
+        )
+    
+    all_responses = []
+    for p in all_plans:
+        result = p.optimization_result
+        all_responses.append(PlanVersionResponse(
+            version=p.version,
+            plan_id=p.plan_id,
+            status=p.status,
+            total_assigned_population=result.total_assigned_population,
+            total_unmet_population=result.total_unmet_population,
+            optimization_status=result.status,
+            created_at=p.created_at,
+            invalidated_at=p.invalidated_at,
+            invalidation_reason=p.invalidation_reason,
+            affected_assignments=p.affected_assignments,
+            affected_sites=p.affected_sites,
+            affected_routes=p.affected_routes,
+        ))
+    
+    return ActivePlanResponse(plan=active_response, all_versions=all_responses)
