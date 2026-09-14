@@ -31,11 +31,14 @@ const BARPETA_CENTER: [
   number
 ] = [91.0, 26.5];
 
+const RISK_COLORS = {
+  RED_ZONE: '#991b1b',
+  HIGH: '#dc2626',
+  MEDIUM: '#f97316',
+  LOW: '#16a34a',
+};
+
 const COLORS = {
-  veryHigh: '#991b1b',
-  high: '#dc2626',
-  medium: '#f97316',
-  low: '#16a34a',
   site: '#059669',
   routeOpen: '#16a34a',
   routeCongested: '#f97316',
@@ -761,6 +764,7 @@ export function MapContainer({
         habitationsRes,
         sitesRes,
         routesRes,
+        riskRes,
       ] = await Promise.all([
         getHabitations({
           accessible_only: false,
@@ -773,6 +777,8 @@ export function MapContainer({
         getRoutes({
           open_only: false,
         }),
+
+        fetch('/api/v1/intelligence/risk').then(r => r.json()).catch(() => null),
       ]);
 
       const habitations =
@@ -784,9 +790,13 @@ export function MapContainer({
       const routes =
         routesRes.routes ?? [];
 
+      const riskAssessments = riskRes?.assessments ?? [];
+      const riskMap = new Map<string, string>(riskAssessments.map((r: any) => [r.habitation_id, r.risk_level]));
+
       addHabitationLayer(
         map,
-        habitations
+        habitations,
+        riskMap
       );
 
       addSiteLayer(
@@ -802,7 +812,8 @@ export function MapContainer({
       await updatePlannedEvacuationLinks(
         map,
         habitations,
-        sites
+        sites,
+        routes
       );
 
       fitToData(
@@ -922,7 +933,8 @@ export function MapContainer({
 
   const addHabitationLayer = (
     map: any,
-    habitations: Habitation[]
+    habitations: Habitation[],
+    riskMap: Map<string, string>
   ) => {
     const features =
       habitations
@@ -941,6 +953,7 @@ export function MapContainer({
               h.vulnerability_score,
             priority_rank:
               h.priority_rank,
+            risk_level: riskMap.get(h.id) || 'LOW',
           },
         }));
 
@@ -996,18 +1009,12 @@ export function MapContainer({
           ],
 
           'circle-color': [
-            'step',
-            [
-              'get',
-              'vulnerability_score',
-            ],
-            COLORS.low,
-            0.5,
-            COLORS.medium,
-            0.7,
-            COLORS.high,
-            0.85,
-            COLORS.veryHigh,
+            'match',
+            ['get', 'risk_level'],
+            'RED_ZONE', RISK_COLORS.RED_ZONE,
+            'HIGH', RISK_COLORS.HIGH,
+            'MEDIUM', RISK_COLORS.MEDIUM,
+            RISK_COLORS.LOW
           ],
 
           'circle-stroke-color':
@@ -1380,7 +1387,8 @@ export function MapContainer({
     async (
       map: any,
       habitations: Habitation[],
-      sites: Site[]
+      sites: Site[],
+      routes: Route[]
     ) => {
       try {
         const activePlan =
@@ -1414,6 +1422,11 @@ export function MapContainer({
           );
         });
 
+        const routeMap = new Map<string, Route>();
+        routes.forEach((route) => {
+          routeMap.set(route.id, route);
+        });
+
         const features =
           assignments
             .map(
@@ -1430,26 +1443,16 @@ export function MapContainer({
                 const site =
                   siteMap.get(siteId);
 
+                const routeId =
+                  assignment.route_id ??
+                  habitation?.evacuation_route_id;
+
+                const route = routeId ? routeMap.get(routeId) : null;
+
                 if (
                   !habitation?.geometry ||
-                  !site?.geometry
-                ) {
-                  return null;
-                }
-
-                const from =
-                  getFeatureCenter(
-                    habitation.geometry
-                  );
-
-                const to =
-                  getFeatureCenter(
-                    site.geometry
-                  );
-
-                if (
-                  !from ||
-                  !to
+                  !site?.geometry ||
+                  !route?.geometry
                 ) {
                   return null;
                 }
@@ -1457,15 +1460,7 @@ export function MapContainer({
                 return {
                   type: 'Feature' as const,
 
-                  geometry: {
-                    type:
-                      'LineString' as const,
-
-                    coordinates: [
-                      from,
-                      to,
-                    ],
-                  },
+                  geometry: route.geometry,
 
                   properties: {
                     habitation_id:
@@ -1474,6 +1469,12 @@ export function MapContainer({
                     site_id:
                       siteId,
 
+                    route_id: route.id,
+
+                    route_name: route.name,
+
+                    route_status: route.status,
+
                     households:
                       assignment.households ??
                       assignment.population ??
@@ -1481,6 +1482,7 @@ export function MapContainer({
 
                     distance_km:
                       assignment.distance_km ??
+                      route.length_km ??
                       null,
                   },
                 };
@@ -1552,7 +1554,7 @@ export function MapContainer({
               'line-width': 3,
 
               'line-dasharray': [
-                2,
+                4,
                 2,
               ],
 
@@ -1639,6 +1641,7 @@ export function MapContainer({
           const [
             habitationsRes,
             sitesRes,
+            routesRes,
           ] = await Promise.all([
             getHabitations({
               accessible_only: false,
@@ -1647,13 +1650,18 @@ export function MapContainer({
             getSites({
               available_only: false,
             }),
+
+            getRoutes({
+              open_only: false,
+            }),
           ]);
 
           await updatePlannedEvacuationLinks(
             map,
             habitationsRes.habitations ??
             [],
-            sitesRes.sites ?? []
+            sitesRes.sites ?? [],
+            routesRes.routes ?? []
           );
         } catch (error) {
           console.warn(
@@ -1737,10 +1745,10 @@ export function MapContainer({
               className="w-3 h-3 rounded-full"
               style={{
                 background:
-                  COLORS.veryHigh,
+                  RISK_COLORS.RED_ZONE,
               }}
             />
-            High risk
+            RED ZONE
           </div>
 
           <div className="flex items-center gap-2">
@@ -1748,10 +1756,32 @@ export function MapContainer({
               className="w-3 h-3 rounded-full"
               style={{
                 background:
-                  COLORS.medium,
+                  RISK_COLORS.HIGH,
               }}
             />
-            Medium risk
+            HIGH
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span
+              className="w-3 h-3 rounded-full"
+              style={{
+                background:
+                  RISK_COLORS.MEDIUM,
+              }}
+            />
+            MEDIUM
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span
+              className="w-3 h-3 rounded-full"
+              style={{
+                background:
+                  RISK_COLORS.LOW,
+              }}
+            />
+            LOW
           </div>
 
           <div className="flex items-center gap-2">
@@ -1784,7 +1814,7 @@ export function MapContainer({
                   COLORS.routeClosed,
               }}
             />
-            Broken road
+            Blocked road
           </div>
 
           <div className="flex items-center gap-2">
@@ -1795,7 +1825,7 @@ export function MapContainer({
                   COLORS.evacuation,
               }}
             />
-            Planned evacuation
+            Evacuation route
           </div>
         </div>
       </div>

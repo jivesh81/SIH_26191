@@ -285,6 +285,78 @@ class EventService:
             "message": "No active plan affected by this event",
         }
 
+    def plan_approved(self, plan_id: str) -> Dict[str, Any]:
+        """
+        Mark a plan as approved by human authority and trigger SMS dispatch.
+
+        This is the ONLY authorized path for SMS dispatch per SIH requirements.
+        """
+        # Find the plan
+        plan = None
+        for p in self._plan_versions:
+            if p.plan_id == plan_id:
+                plan = p
+                break
+
+        if not plan:
+            return {"success": False, "error": f"Plan {plan_id} not found"}
+
+        if plan.status != PlanStatus.ACTIVE:
+            return {"success": False, "error": f"Plan {plan_id} is not active (status: {plan.status.value})"}
+
+        # Get SMS service
+        from app.services.sms import get_sms_service
+        sms_service = get_sms_service()
+
+        # Extract assignment data for SMS
+        assignments = []
+        site_names = []
+        site_ids_seen = set()
+
+        for a in plan.optimization_result.assignments:
+            assignments.append({
+                "habitation_id": a.habitation_id,
+                "habitation_name": a.habitation_name,
+                "assigned_site_id": a.assigned_site_id,
+                "assigned_site_name": a.assigned_site_name,
+                "route_id": a.route_id,
+            })
+            if a.assigned_site_id not in site_ids_seen:
+                site_ids_seen.add(a.assigned_site_id)
+                site_names.append(a.assigned_site_name)
+
+        total_pop = plan.optimization_result.total_assigned_population
+
+        # Send plan approval notification (mock)
+        sms_entry = sms_service.send_plan_approval_notification(
+            plan_id=plan.plan_id,
+            plan_version=plan.version,
+            assignments=assignments,
+            site_names=site_names,
+            total_population=total_pop,
+        )
+
+        # Also send per-habitation evacuation orders (mock)
+        sms_service.send_evacuation_orders(
+            plan_id=plan.plan_id,
+            plan_version=plan.version,
+            assignments=assignments,
+        )
+
+        return {
+            "success": True,
+            "plan_id": plan.plan_id,
+            "plan_version": plan.version,
+            "sms_notification": {
+                "id": sms_entry.id,
+                "status": sms_entry.status,
+                "message_type": sms_entry.message_type,
+                "recipient_count": sms_entry.recipient_count,
+                "sent_at": sms_entry.sent_at,
+            },
+            "evacuation_orders_sent": len(assignments),
+        }
+
 
 # Global event service instance
 event_service = EventService()

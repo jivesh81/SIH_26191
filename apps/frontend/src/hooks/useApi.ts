@@ -16,6 +16,19 @@ import {
   EventTriggerResponse,
   DisasterEvent,
   EventLogResponse,
+  PredictedRiskRequest,
+  PredictedRiskResponse,
+  PredictedRiskListResponse,
+  SMSLogEntry,
+  SMSLogResponse,
+  PlanApprovalRequest,
+  PlanApprovalResponse,
+  RouteFeasibilityResponse,
+  RouteFeasibilityListResponse,
+  RiskAssessmentResponse,
+  RiskAssessmentListResponse,
+  HealthResponse,
+  ReadinessResponse,
   runOptimization,
   triggerEvent,
   getActivePlan,
@@ -24,6 +37,18 @@ import {
   getSites,
   getRoutes,
   getAllRouteFeasibility,
+  checkRouteFeasibility,
+  predictRisk,
+  predictRiskBatch,
+  checkAllRoutesFromHabitation,
+  approvePlanAndNotify,
+  getSMSLog,
+  getRiskAssessments,
+  getRiskAssessment,
+  getRedZoneHabitations,
+  getHealth,
+  getReadiness,
+  getApiHealth,
 } from '@/lib/api';
 
 export function useHabitations(accessibleOnly = true) {
@@ -54,6 +79,24 @@ export function useRouteFeasibility() {
   return useQuery({
     queryKey: ['route-feasibility'],
     queryFn: getAllRouteFeasibility,
+    staleTime: 30000,
+  });
+}
+
+export function useRouteFeasibilityCheck(habitationId: string, siteId: string) {
+  return useQuery({
+    queryKey: ['route-feasibility', habitationId, siteId],
+    queryFn: () => checkRouteFeasibility(habitationId, siteId),
+    enabled: !!habitationId && !!siteId,
+    staleTime: 30000,
+  });
+}
+
+export function useAllRoutesFromHabitation(habitationId: string) {
+  return useQuery({
+    queryKey: ['routes-from-habitation', habitationId],
+    queryFn: () => checkAllRoutesFromHabitation(habitationId),
+    enabled: !!habitationId,
     staleTime: 30000,
   });
 }
@@ -383,6 +426,114 @@ export function useTriggerEventMutation() {
 }
 
 /* -------------------------------------------------------------------------- */
+/* ML Risk Prediction                                                         */
+/* -------------------------------------------------------------------------- */
+
+export function usePredictRisk(request: PredictedRiskRequest) {
+  return useQuery({
+    queryKey: ['predict-risk', request.habitation_id, request.weather],
+    queryFn: () => predictRisk(request),
+    enabled: !!request.habitation_id,
+  });
+}
+
+export function usePredictRiskBatch(weather?: Record<string, number>) {
+  return useQuery({
+    queryKey: ['predict-risk-batch', weather],
+    queryFn: () => predictRiskBatch(weather),
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* Risk Assessment (Deterministic)                                           */
+/* -------------------------------------------------------------------------- */
+
+export function useRiskAssessments() {
+  return useQuery({
+    queryKey: ['risk-assessments'],
+    queryFn: getRiskAssessments,
+    staleTime: 30000,
+  });
+}
+
+export function useRiskAssessment(habitationId: string) {
+  return useQuery({
+    queryKey: ['risk-assessment', habitationId],
+    queryFn: () => getRiskAssessment(habitationId),
+    enabled: !!habitationId,
+    staleTime: 30000,
+  });
+}
+
+export function useRedZoneHabitations() {
+  return useQuery({
+    queryKey: ['red-zone-habitations'],
+    queryFn: getRedZoneHabitations,
+    staleTime: 30000,
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* SMS Log                                                                    */
+/* -------------------------------------------------------------------------- */
+
+export function useSMSLog(planId?: string, limit: number = 100) {
+  return useQuery({
+    queryKey: ['sms-log', planId, limit],
+    queryFn: () => getSMSLog(planId, limit),
+    refetchInterval: 5000,
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* Plan Approval                                                              */
+/* -------------------------------------------------------------------------- */
+
+export function useApprovePlan() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (request: PlanApprovalRequest) => approvePlanAndNotify(request),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['active-plan'] });
+      queryClient.invalidateQueries({ queryKey: ['sms-log'] });
+      queryClient.invalidateQueries({ queryKey: ['event-log'] });
+    },
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* Health / Readiness                                                         */
+/* -------------------------------------------------------------------------- */
+
+export function useHealth() {
+  return useQuery({
+    queryKey: ['health'],
+    queryFn: getHealth,
+    staleTime: 30000,
+    refetchInterval: 60000,
+  });
+}
+
+export function useReadiness() {
+  return useQuery({
+    queryKey: ['readiness'],
+    queryFn: getReadiness,
+    staleTime: 30000,
+    refetchInterval: 60000,
+  });
+}
+
+export function useApiHealth() {
+  return useQuery({
+    queryKey: ['api-health'],
+    queryFn: getApiHealth,
+    staleTime: 30000,
+    refetchInterval: 60000,
+  });
+}
+
+/* -------------------------------------------------------------------------- */
 /* Type exports                                                               */
 /* -------------------------------------------------------------------------- */
 
@@ -391,6 +542,8 @@ export type {
   Site,
   Route,
   RouteFeasibility,
+  RouteFeasibilityResponse,
+  RouteFeasibilityListResponse,
   OptimizationResponse,
   OptimizationAssignment,
   SiteCapacitySummary,
@@ -400,4 +553,15 @@ export type {
   EventTriggerResponse,
   DisasterEvent,
   EventLogResponse,
+  PredictedRiskRequest,
+  PredictedRiskResponse,
+  PredictedRiskListResponse,
+  SMSLogEntry,
+  SMSLogResponse,
+  PlanApprovalRequest,
+  PlanApprovalResponse,
+  RiskAssessmentResponse,
+  RiskAssessmentListResponse,
+  HealthResponse,
+  ReadinessResponse,
 };

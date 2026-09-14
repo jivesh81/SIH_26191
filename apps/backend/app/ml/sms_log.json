@@ -1,0 +1,416 @@
+[
+  {
+    "id": "45f28522",
+    "plan_id": "e1219fea",
+    "plan_version": 1,
+    "message_type": "plan_approved",
+    "recipient_count": 6,
+    "message_template": "plan_approved_v1",
+    "message_content": "AAPDA SETU ALERT: Relocation Plan v1 APPROVED. 10,850 people assigned to Barpeta Higher Ground - North, Chenga Upland Area, Howly Elevated Plains. Evacuation teams activated. Follow official instructions.",
+    "status": "sent",
+    "created_at": "2026-09-14T08:17:59.639049Z",
+    "sent_at": "2026-09-14T08:17:59.639060Z",
+    "delivered_at": "2026-09-14T08:17:59.639065Z",
+    "metadata": {
+      "habitation_ids": [
+        "hab_003",
+        "hab_005",
+        "hab_008",
+        "hab_009",
+        "hab_010",
+        "hab_012"
+      ],
+      "site_ids": [
+        "site_002",
+        "site_001",
+        "site_004"
+      ],
+      "data_source": "synthetic_demo",
+      "note": "Mock SMS - no actual telecom integration"
+    }
+  },
+  {
+    "id": "274d1c41",
+    "plan_id": "e1219fea",
+    "plan_version": 1,
+    "message_type": "evacuation_order",
+    "recipient_count": 1,
+    "message_template": "evacuation_order_v1",
+    "message_content": "EVACUATION ORDER: Mandia Gaon -> Barpeta Higher Ground - North via route_mandia_1. Move immediately. Aapda Setu.",
+    "status": "sent",
+    "created_at": "2026-09-14T08:17:59.640115Z",
+    "sent_at": "2026-09-14T08:17:59.640123Z",
+    "delivered_at": "2026-09-14T08:17:59.640127Z",
+    "metadata": {
+      "habitation_id": "hab_003",
+      "site_id": "site_001",
+      "data_source": "synthetic_demo"
+    }
+  },
+  {
+    "id": "2086f0cf",
+    "plan_id": "e1219fea",
+    "plan_version": 1,
+    "message_type": "evacuation_order",
+    "recipient_count": 1,
+    "message_template": "evacuation_order_v1",
+    "message_content": "EVACUATION ORDER: Goberadhana -> Barpeta Higher Ground - North via route_goberadhana_1. Move immediately. Aapda Setu.",
+    "status": "sent",
+    "created_at": "2026-09-14T08:17:59.640162Z",
+    "sent_at": "2026-09-14T08:17:59.640168Z",
+    "delivered_at": "2026-09-14T08:17:59.640172Z",
+    "metadata": {
+      "habitation_id": "hab_005",
+      "site_id": "site_001",
+      "data_source": "synthetic_demo"
+    }
+  },
+  {
+    "id": "3a05e7a5",
+    "plan_id": "e1219fea",
+    "plan_version": 1,
+    "message_type": "evacuation_order",
+    "recipient_count": 1,
+    "message_template": "evacuation_order_v1",
+    "message_content": "EVACUATION ORDER: Howly Town -> Chenga Upland Area via route_howly_1. Move immediately. Aapda Setu.",
+    "status": "sent",
+    "created_at": "2026-09-14T08:17:59.640187Z",
+    "sent_at": "2026-09-14T08:17:59.640191Z",
+    "delivered_at": "2026-09-14T08:17:59.640194Z",
+    "metadata": {
+      "habitation_id": "hab_008",
+      "site_id": "site_004",
+      "data_source": "synthetic_demo"
+    }
+  },
+  {
+    "id": "9ef2cd31",
+    "plan_id": "e1219fea",
+    "plan_version": 1,
+    "message_type": "evacuation_order",
+    "recipient_count": 1,
+    "message_template": "evacuation_order_v1",
+    "message_content": "EVACUATION ORDER: Pathsala -> Barpeta Higher Ground - North via route_bajali_1. Move immediately. Aapda Setu.",
+    "status": "sent",
+    "created_at": "2026-09-14T08:17:59.640207Z",
+    "sent_at": "2026-09-14T08:17:59.640210Z",
+    "delivered_at": "2026-09-14T08:17:59.640214Z",
+    "metadata": {
+      "habitation_id": "hab_009",
+      "site_id": "site_001",
+      "data_source": "synthetic_demo"
+    }
+  },
+  {
+    "id": "82a692a7",
+    "plan_id": "e1219fea",
+    "plan_version": 1,
+    "message_type": "evacuation_order",
+    "recipient_count": 1,
+    "message_template": "evacuation_order_v1",
+    "message_content": "EVACUATION ORDER: Sarbhog -> Howly Elevated Plains via route_sarbhog_1. Move immediately. Aapda Setu.",
+    "status": "sent",
+    "created_at": "2026-09-14T08:17:59.640226Z",
+    "sent_at": "2026-09-14T08:17:59.640230Z",
+    "delivered_at": "2026-09-14T08:17:59.640233Z",
+    "metadata": {
+      "habitation_id": "hab_010",
+      "site_id": "site_002",
+      "data_source": "synthetic_demo"
+    }
+  },
+  {
+    "id": "d62c2a96",
+    "plan_id": "e1219fea",
+    "plan_version": 1,
+    "message_type": "evacuation_order",
+    "recipient_count": 1,
+    "message_template": "evacuation_order_v1",
+    "message_content": "EVACUATION ORDER: Pakabetbari -> Howly Elevated Plains via route_pakabetbari_1. Move immediately. Aapda Setu.",
+    "status": "sent",
+    "created_at": "2026-09-14T08:17:59.640247Z",
+    "sent_at": "2026-09-14T08:17:59.640250Z",
+    "delivered_at": "2026-09-14T08:17:59.640254Z",
+    "metadata": {
+      "habitation_id": "hab_012",
+      "site_id": "site_002",
+      "data_source": "synthetic_demo"
+    }
+  },
+  {
+    "id": "24f2b38e",
+    "plan_id": "aaa3e1d2",
+    "plan_version": 1,
+    "message_type": "plan_approved",
+    "recipient_count": 6,
+    "message_template": "plan_approved_v1",
+    "message_content": "AAPDA SETU ALERT: Relocation Plan v1 APPROVED. 10,850 people assigned to Barpeta Higher Ground - North, Chenga Upland Area, Howly Elevated Plains. Evacuation teams activated. Follow official instructions.",
+    "status": "sent",
+    "created_at": "2026-09-14T18:02:37.748710Z",
+    "sent_at": "2026-09-14T18:02:37.748717Z",
+    "delivered_at": "2026-09-14T18:02:37.748719Z",
+    "metadata": {
+      "habitation_ids": [
+        "hab_003",
+        "hab_005",
+        "hab_008",
+        "hab_009",
+        "hab_010",
+        "hab_012"
+      ],
+      "site_ids": [
+        "site_002",
+        "site_001",
+        "site_004"
+      ],
+      "data_source": "synthetic_demo",
+      "note": "Mock SMS - no actual telecom integration"
+    }
+  },
+  {
+    "id": "5648c5c7",
+    "plan_id": "aaa3e1d2",
+    "plan_version": 1,
+    "message_type": "evacuation_order",
+    "recipient_count": 1,
+    "message_template": "evacuation_order_v1",
+    "message_content": "EVACUATION ORDER: Mandia Gaon -> Barpeta Higher Ground - North via route_mandia_1. Move immediately. Aapda Setu.",
+    "status": "sent",
+    "created_at": "2026-09-14T18:02:37.749511Z",
+    "sent_at": "2026-09-14T18:02:37.749516Z",
+    "delivered_at": "2026-09-14T18:02:37.749518Z",
+    "metadata": {
+      "habitation_id": "hab_003",
+      "site_id": "site_001",
+      "data_source": "synthetic_demo"
+    }
+  },
+  {
+    "id": "f59c5fac",
+    "plan_id": "aaa3e1d2",
+    "plan_version": 1,
+    "message_type": "evacuation_order",
+    "recipient_count": 1,
+    "message_template": "evacuation_order_v1",
+    "message_content": "EVACUATION ORDER: Goberadhana -> Barpeta Higher Ground - North via route_goberadhana_1. Move immediately. Aapda Setu.",
+    "status": "sent",
+    "created_at": "2026-09-14T18:02:37.749530Z",
+    "sent_at": "2026-09-14T18:02:37.749532Z",
+    "delivered_at": "2026-09-14T18:02:37.749534Z",
+    "metadata": {
+      "habitation_id": "hab_005",
+      "site_id": "site_001",
+      "data_source": "synthetic_demo"
+    }
+  },
+  {
+    "id": "5f34bedf",
+    "plan_id": "aaa3e1d2",
+    "plan_version": 1,
+    "message_type": "evacuation_order",
+    "recipient_count": 1,
+    "message_template": "evacuation_order_v1",
+    "message_content": "EVACUATION ORDER: Howly Town -> Chenga Upland Area via route_howly_1. Move immediately. Aapda Setu.",
+    "status": "sent",
+    "created_at": "2026-09-14T18:02:37.749540Z",
+    "sent_at": "2026-09-14T18:02:37.749542Z",
+    "delivered_at": "2026-09-14T18:02:37.749544Z",
+    "metadata": {
+      "habitation_id": "hab_008",
+      "site_id": "site_004",
+      "data_source": "synthetic_demo"
+    }
+  },
+  {
+    "id": "2747c8a4",
+    "plan_id": "aaa3e1d2",
+    "plan_version": 1,
+    "message_type": "evacuation_order",
+    "recipient_count": 1,
+    "message_template": "evacuation_order_v1",
+    "message_content": "EVACUATION ORDER: Pathsala -> Barpeta Higher Ground - North via route_bajali_1. Move immediately. Aapda Setu.",
+    "status": "sent",
+    "created_at": "2026-09-14T18:02:37.749549Z",
+    "sent_at": "2026-09-14T18:02:37.749551Z",
+    "delivered_at": "2026-09-14T18:02:37.749552Z",
+    "metadata": {
+      "habitation_id": "hab_009",
+      "site_id": "site_001",
+      "data_source": "synthetic_demo"
+    }
+  },
+  {
+    "id": "91f4e314",
+    "plan_id": "aaa3e1d2",
+    "plan_version": 1,
+    "message_type": "evacuation_order",
+    "recipient_count": 1,
+    "message_template": "evacuation_order_v1",
+    "message_content": "EVACUATION ORDER: Sarbhog -> Howly Elevated Plains via route_sarbhog_1. Move immediately. Aapda Setu.",
+    "status": "sent",
+    "created_at": "2026-09-14T18:02:37.749557Z",
+    "sent_at": "2026-09-14T18:02:37.749559Z",
+    "delivered_at": "2026-09-14T18:02:37.749560Z",
+    "metadata": {
+      "habitation_id": "hab_010",
+      "site_id": "site_002",
+      "data_source": "synthetic_demo"
+    }
+  },
+  {
+    "id": "7e2511c8",
+    "plan_id": "aaa3e1d2",
+    "plan_version": 1,
+    "message_type": "evacuation_order",
+    "recipient_count": 1,
+    "message_template": "evacuation_order_v1",
+    "message_content": "EVACUATION ORDER: Pakabetbari -> Howly Elevated Plains via route_pakabetbari_1. Move immediately. Aapda Setu.",
+    "status": "sent",
+    "created_at": "2026-09-14T18:02:37.749566Z",
+    "sent_at": "2026-09-14T18:02:37.749568Z",
+    "delivered_at": "2026-09-14T18:02:37.749569Z",
+    "metadata": {
+      "habitation_id": "hab_012",
+      "site_id": "site_002",
+      "data_source": "synthetic_demo"
+    }
+  },
+  {
+    "id": "13f83748",
+    "plan_id": "4b82df57",
+    "plan_version": 2,
+    "message_type": "plan_approved",
+    "recipient_count": 6,
+    "message_template": "plan_approved_v1",
+    "message_content": "AAPDA SETU ALERT: Relocation Plan v2 APPROVED. 10,850 people assigned to Barpeta Higher Ground - North, Chenga Upland Area, Howly Elevated Plains. Evacuation teams activated. Follow official instructions.",
+    "status": "sent",
+    "created_at": "2026-09-14T18:45:35.153527Z",
+    "sent_at": "2026-09-14T18:45:35.153543Z",
+    "delivered_at": "2026-09-14T18:45:35.153547Z",
+    "metadata": {
+      "habitation_ids": [
+        "hab_003",
+        "hab_005",
+        "hab_008",
+        "hab_009",
+        "hab_010",
+        "hab_012"
+      ],
+      "site_ids": [
+        "site_002",
+        "site_001",
+        "site_004"
+      ],
+      "data_source": "synthetic_demo",
+      "note": "Mock SMS - no actual telecom integration"
+    }
+  },
+  {
+    "id": "fd62bc13",
+    "plan_id": "4b82df57",
+    "plan_version": 2,
+    "message_type": "evacuation_order",
+    "recipient_count": 1,
+    "message_template": "evacuation_order_v1",
+    "message_content": "EVACUATION ORDER: Mandia Gaon -> Barpeta Higher Ground - North via route_mandia_1. Move immediately. Aapda Setu.",
+    "status": "sent",
+    "created_at": "2026-09-14T18:45:35.156180Z",
+    "sent_at": "2026-09-14T18:45:35.156187Z",
+    "delivered_at": "2026-09-14T18:45:35.156189Z",
+    "metadata": {
+      "habitation_id": "hab_003",
+      "site_id": "site_001",
+      "data_source": "synthetic_demo"
+    }
+  },
+  {
+    "id": "a3f5ecb7",
+    "plan_id": "4b82df57",
+    "plan_version": 2,
+    "message_type": "evacuation_order",
+    "recipient_count": 1,
+    "message_template": "evacuation_order_v1",
+    "message_content": "EVACUATION ORDER: Goberadhana -> Barpeta Higher Ground - North via route_goberadhana_1. Move immediately. Aapda Setu.",
+    "status": "sent",
+    "created_at": "2026-09-14T18:45:35.156202Z",
+    "sent_at": "2026-09-14T18:45:35.156204Z",
+    "delivered_at": "2026-09-14T18:45:35.156206Z",
+    "metadata": {
+      "habitation_id": "hab_005",
+      "site_id": "site_001",
+      "data_source": "synthetic_demo"
+    }
+  },
+  {
+    "id": "852a14eb",
+    "plan_id": "4b82df57",
+    "plan_version": 2,
+    "message_type": "evacuation_order",
+    "recipient_count": 1,
+    "message_template": "evacuation_order_v1",
+    "message_content": "EVACUATION ORDER: Howly Town -> Chenga Upland Area via route_howly_1. Move immediately. Aapda Setu.",
+    "status": "sent",
+    "created_at": "2026-09-14T18:45:35.156212Z",
+    "sent_at": "2026-09-14T18:45:35.156213Z",
+    "delivered_at": "2026-09-14T18:45:35.156215Z",
+    "metadata": {
+      "habitation_id": "hab_008",
+      "site_id": "site_004",
+      "data_source": "synthetic_demo"
+    }
+  },
+  {
+    "id": "f85462e9",
+    "plan_id": "4b82df57",
+    "plan_version": 2,
+    "message_type": "evacuation_order",
+    "recipient_count": 1,
+    "message_template": "evacuation_order_v1",
+    "message_content": "EVACUATION ORDER: Pathsala -> Barpeta Higher Ground - North via route_bajali_1. Move immediately. Aapda Setu.",
+    "status": "sent",
+    "created_at": "2026-09-14T18:45:35.156221Z",
+    "sent_at": "2026-09-14T18:45:35.156222Z",
+    "delivered_at": "2026-09-14T18:45:35.156224Z",
+    "metadata": {
+      "habitation_id": "hab_009",
+      "site_id": "site_001",
+      "data_source": "synthetic_demo"
+    }
+  },
+  {
+    "id": "da0ccdbc",
+    "plan_id": "4b82df57",
+    "plan_version": 2,
+    "message_type": "evacuation_order",
+    "recipient_count": 1,
+    "message_template": "evacuation_order_v1",
+    "message_content": "EVACUATION ORDER: Sarbhog -> Howly Elevated Plains via route_sarbhog_1. Move immediately. Aapda Setu.",
+    "status": "sent",
+    "created_at": "2026-09-14T18:45:35.156229Z",
+    "sent_at": "2026-09-14T18:45:35.156230Z",
+    "delivered_at": "2026-09-14T18:45:35.156233Z",
+    "metadata": {
+      "habitation_id": "hab_010",
+      "site_id": "site_002",
+      "data_source": "synthetic_demo"
+    }
+  },
+  {
+    "id": "6d548998",
+    "plan_id": "4b82df57",
+    "plan_version": 2,
+    "message_type": "evacuation_order",
+    "recipient_count": 1,
+    "message_template": "evacuation_order_v1",
+    "message_content": "EVACUATION ORDER: Pakabetbari -> Howly Elevated Plains via route_pakabetbari_1. Move immediately. Aapda Setu.",
+    "status": "sent",
+    "created_at": "2026-09-14T18:45:35.156239Z",
+    "sent_at": "2026-09-14T18:45:35.156242Z",
+    "delivered_at": "2026-09-14T18:45:35.156244Z",
+    "metadata": {
+      "habitation_id": "hab_012",
+      "site_id": "site_002",
+      "data_source": "synthetic_demo"
+    }
+  }
+]

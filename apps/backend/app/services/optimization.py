@@ -908,6 +908,78 @@ def _build_site_capacities(
 
 
 # =============================================================================
+# GREEDY FALLBACK
+# =============================================================================
+
+
+def _greedy_fallback(
+    habitations: List[HabitationResponse],
+    sites: List[SiteResponse],
+    effective_capacity_map: Dict[str, int],
+) -> List[RelocationAssignment]:
+    """
+    Greedy fallback when CP-SAT fails or times out.
+
+    Assigns habitations by priority order to the nearest feasible site
+    with available effective capacity.
+    """
+    from app.services.intelligence import check_route_feasibility
+
+    habitation_map = {h.id: h for h in habitations}
+    site_map = {s.id: s for s in sites}
+
+    site_remaining = {
+        site_id: max(0, effective_capacity_map.get(site_id, 0))
+        for site_id in site_map
+    }
+
+    sorted_habitations = sorted(
+        habitations,
+        key=lambda h: h.priority_rank if h.priority_rank is not None else 999
+    )
+
+    assignments: List[RelocationAssignment] = []
+
+    for habitation in sorted_habitations:
+        population = int(habitation.population)
+        best_site = None
+        best_feasibility = None
+
+        for site in sites:
+            if site_remaining.get(site.id, 0) < population:
+                continue
+
+            feasibility = check_route_feasibility(habitation.id, site.id)
+            if not feasibility.feasible:
+                continue
+
+            best_site = site
+            best_feasibility = feasibility
+            break
+
+        if best_site and best_feasibility:
+            site_remaining[best_site.id] -= population
+
+            assignments.append(
+                RelocationAssignment(
+                    habitation_id=habitation.id,
+                    habitation_name=habitation.name,
+                    assigned_site_id=best_site.id,
+                    assigned_site_name=best_site.name,
+                    population=population,
+                    priority_rank=habitation.priority_rank,
+                    route_status="feasible",
+                    route_id=best_feasibility.route_used,
+                    distance_km=best_feasibility.distance_km,
+                    travel_time_min=best_feasibility.travel_time_min,
+                    site_remaining_capacity=site_remaining[best_site.id],
+                )
+            )
+
+    return assignments
+
+
+# =============================================================================
 # MAIN OPTIMIZATION
 # =============================================================================
 
@@ -1128,7 +1200,79 @@ def run_relocation_optimization(
     )
 
     # -----------------------------------------------------------------
-    # Convert results
+    # Greedy fallback if CP-SAT fails
+    # -----------------------------------------------------------------
+
+    use_greedy = opt_result.status in ("TIMEOUT", "UNKNOWN", "INFEASIBLE")
+
+    if use_greedy:
+        assignments = _greedy_fallback(
+            selected_habitations,
+            selected_sites,
+            effective_capacity_map,
+        )
+
+        site_capacities = {}
+        for site in selected_sites:
+            eff_cap = effective_capacity_map.get(site.id, 0)
+            allocated = sum(
+                a.population for a in assignments if a.assigned_site_id == site.id
+            )
+            remaining = max(0, eff_cap - allocated)
+            site_capacities[site.id] = SiteCapacitySummary(
+                site_id=site.id,
+                site_name=site.name,
+                max_capacity=eff_cap,
+                current_allocation=0,
+                allocated_population=allocated,
+                remaining_capacity=remaining,
+                assigned_habitations=[
+                    a.habitation_id for a in assignments if a.assigned_site_id == site.id
+                ],
+            )
+
+        infeasibility_reasons = []
+        total_assigned = sum(a.population for a in assignments)
+        total_population = sum(int(h.population) for h in selected_habitations)
+        total_unmet = max(0, total_population - total_assigned)
+
+        if total_unmet > 0:
+            unassigned_ids = [
+                h.id for h in selected_habitations
+                if h.id not in {a.habitation_id for a in assignments}
+            ]
+            infeasibility_reasons.append(
+                InfeasibilityReason(
+                    constraint="greedy_fallback_unmet",
+                    description=(
+                        f"{total_unmet} people remain unassigned after greedy fallback. "
+                        f"CP-SAT status: {opt_result.status}."
+                    ),
+                    affected_habitations=unassigned_ids,
+                    severity="critical",
+                    recommendation=(
+                        "Increase effective site capacity, restore routes, "
+                        "or add relocation sites."
+                    ),
+                )
+            )
+
+        final_status = OptimizationStatus.FEASIBLE if total_unmet == 0 else OptimizationStatus.INFEASIBLE
+        computation_time_ms = (time.perf_counter() - start_time) * 1000
+
+        return OptimizationResponse(
+            status=final_status,
+            assignments=assignments,
+            total_assigned_population=total_assigned,
+            total_unmet_population=total_unmet,
+            site_capacities=site_capacities,
+            infeasibility_reasons=infeasibility_reasons,
+            computation_time_ms=computation_time_ms,
+            solver_stats={"fallback": "greedy", "cp_sat_status": opt_result.status},
+        )
+
+    # -----------------------------------------------------------------
+    # Convert CP-SAT results
     # -----------------------------------------------------------------
 
     assignments = _build_assignments(

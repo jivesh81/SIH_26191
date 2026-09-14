@@ -142,7 +142,7 @@ export function LayerControl() {
 
       <div className="pt-2 border-t border-slate-200">
         <button
-          className="w-full text-left px-2 py-1.5 text-xs text-aapda-600 hover:text-aapda-700 font-medium flex items-center gap-2"
+          className="w-full text-left px-2 py-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-2"
           onClick={() => {
             // TODO: Trigger optimization
           }}
@@ -183,7 +183,7 @@ function LayerGroup({ group, isExpanded, groupVisible, onToggleGroup, onToggleLa
             type="checkbox"
             checked={groupVisible}
             onChange={(e) => onToggleGroupLayers(group, e.target.checked)}
-            className="w-4 h-4 text-aapda-600 border-slate-300 rounded focus:ring-aapda-500"
+            className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
             aria-label={group.name}
           />
           <span className="text-sm font-medium text-slate-900">{group.name}</span>
@@ -209,7 +209,7 @@ function LayerGroup({ group, isExpanded, groupVisible, onToggleGroup, onToggleLa
                 type="checkbox"
                 checked={layerVisibility[child.id]}
                 onChange={(e) => onToggleLayer(child.id)}
-                className="w-4 h-4 text-aapda-600 border-slate-300 rounded focus:ring-aapda-500"
+                className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
                 aria-label={child.name}
               />
               <span className="text-sm text-slate-700">{child.name}</span>

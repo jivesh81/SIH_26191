@@ -896,3 +896,75 @@ class ShelterListResponse(BaseModel):
 class EventListResponse(BaseModel):
     events: List[DisasterEvent]
     total: int
+
+
+# =============================================================================
+# ML Predictive Risk
+# =============================================================================
+
+class PredictedRiskRequest(BaseModel):
+    """Request for ML risk prediction."""
+    habitation_id: str
+    weather: Optional[Dict[str, float]] = None
+
+
+class PredictedRiskResponse(BaseModel):
+    """ML-enhanced risk prediction response."""
+    habitation_id: str
+    habitation_name: str
+    deterministic_risk_level: RiskLevel
+    ml_risk_level: RiskLevel
+    final_risk_level: RiskLevel
+    ml_probabilities: Dict[str, float]
+    explanation: str
+    data_source: str = "synthetic_demo"
+    ml_model: str = "random_forest_v1_synthetic"
+
+
+class PredictedRiskListResponse(BaseModel):
+    predictions: List[PredictedRiskResponse]
+    total: int
+
+
+# =============================================================================
+# SMS/Notification Log
+# =============================================================================
+
+class SMSLogEntry(BaseModel):
+    """SMS dispatch log entry."""
+    id: str
+    plan_id: str
+    plan_version: int
+    message_type: str
+    recipient_count: int
+    message_template: str
+    message_content: str
+    status: str
+    created_at: str
+    sent_at: Optional[str] = None
+    delivered_at: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
+
+
+class SMSLogResponse(BaseModel):
+    entries: List[SMSLogEntry]
+    total: int
+
+
+# =============================================================================
+# Plan Approval
+# =============================================================================
+
+class PlanApprovalRequest(BaseModel):
+    """Request to approve a plan and trigger SMS."""
+    plan_id: str
+
+
+class PlanApprovalResponse(BaseModel):
+    """Response after plan approval and SMS dispatch."""
+    success: bool
+    plan_id: Optional[str] = None
+    plan_version: Optional[int] = None
+    sms_notification: Optional[Dict[str, Any]] = None
+    evacuation_orders_sent: Optional[int] = None
+    error: Optional[str] = None

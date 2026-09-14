@@ -5,7 +5,7 @@ Provides read-only access to synthetic demo data for Barpeta district.
 """
 
 from fastapi import APIRouter, HTTPException, Query
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 from app.schemas.domain import (
     HabitationResponse,
@@ -34,6 +34,13 @@ from app.schemas.domain import (
     EventTriggerResponse,
     EventLogResponse,
     ActivePlanResponse,
+    PredictedRiskRequest,
+    PredictedRiskResponse,
+    PredictedRiskListResponse,
+    SMSLogEntry,
+    SMSLogResponse,
+    PlanApprovalRequest,
+    PlanApprovalResponse,
 )
 
 from app.services.data_layer import (
@@ -65,6 +72,8 @@ from app.services.intelligence import (
     check_all_routes_for_site,
     check_all_routes_from_habitation,
 )
+from app.ml.risk_predictor import get_predictor, predict_risk_score
+from app.services.sms import get_sms_service
 
 from app.services.optimization import run_relocation_optimization
 from app.services.events import event_service, EventService
@@ -657,6 +666,80 @@ async def get_habitation_risk(habitation_id: str):
 
 
 # =============================================================================
+# Core Intelligence - ML Predictive Risk
+# =============================================================================
+
+@router.post(
+    "/intelligence/risk/predict",
+    response_model=PredictedRiskResponse,
+    tags=["Intelligence"],
+    summary="Get ML-enhanced risk prediction for a habitation",
+    description="Returns probabilistic risk prediction using trained ML model alongside deterministic score.",
+)
+async def predict_risk(request: PredictedRiskRequest):
+    """Get ML-enhanced risk prediction for a single habitation."""
+    from app.services.data_layer import get_habitation_by_id
+
+    habitation = get_habitation_by_id(request.habitation_id)
+    if not habitation:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Habitation {request.habitation_id} not found",
+        )
+
+    # Get deterministic assessment
+    det = get_risk_assessment(request.habitation_id)
+
+    # Get ML prediction
+    ml_result = predict_risk_score(habitation, request.weather)
+    predictor = get_predictor()
+    ml_risk, probs = predictor.predict(habitation, request.weather)
+
+    return PredictedRiskResponse(
+        habitation_id=habitation.id,
+        habitation_name=habitation.name,
+        deterministic_risk_level=det.risk_level,
+        ml_risk_level=ml_risk,
+        final_risk_level=ml_result.risk_level,
+        ml_probabilities=probs,
+        explanation=ml_result.explanation,
+    )
+
+
+@router.post(
+    "/intelligence/risk/predict/batch",
+    response_model=PredictedRiskListResponse,
+    tags=["Intelligence"],
+    summary="Get ML-enhanced risk predictions for all habitations",
+    description="Returns probabilistic risk predictions for all habitations.",
+)
+async def predict_risk_batch(weather: Optional[Dict[str, float]] = None):
+    """Get ML-enhanced risk predictions for all habitations."""
+    from app.services.data_layer import get_habitations
+
+    habitations = get_habitations()
+    predictor = get_predictor()
+
+    predictions = []
+    for habitation in habitations:
+        det = get_risk_assessment(habitation.id)
+        ml_risk, probs = predictor.predict(habitation, weather)
+        ml_result = predict_risk_score(habitation, weather)
+
+        predictions.append(PredictedRiskResponse(
+            habitation_id=habitation.id,
+            habitation_name=habitation.name,
+            deterministic_risk_level=det.risk_level,
+            ml_risk_level=ml_risk,
+            final_risk_level=ml_result.risk_level,
+            ml_probabilities=probs,
+            explanation=ml_result.explanation,
+        ))
+
+    return PredictedRiskListResponse(predictions=predictions, total=len(predictions))
+
+
+# =============================================================================
 # Core Intelligence - Effective Capacity
 # =============================================================================
 
@@ -1033,3 +1116,54 @@ async def get_active_plan():
         ))
     
     return ActivePlanResponse(plan=active_response, all_versions=all_responses)
+
+
+# =============================================================================
+# Plan Approval & SMS Dispatch
+# =============================================================================
+
+@router.post(
+    "/plan/approve",
+    response_model=PlanApprovalResponse,
+    tags=["Plan"],
+    summary="Approve active plan and trigger SMS dispatch",
+    description="Human authority approves the relocation plan, triggering mock SMS notifications.",
+)
+async def approve_plan(request: PlanApprovalRequest):
+    """
+    Approve a relocation plan and trigger SMS dispatch.
+
+    This is the ONLY authorized path for SMS dispatch per SIH requirements.
+    Flow: EVENT/RISK -> RISK ASSESSMENT -> PLAN GENERATION -> HUMAN APPROVAL -> SMS DISPATCH
+    """
+    result = event_service.plan_approved(request.plan_id)
+
+    if not result.get("success"):
+        return PlanApprovalResponse(
+            success=False,
+            error=result.get("error", "Unknown error"),
+        )
+
+    return PlanApprovalResponse(
+        success=True,
+        plan_id=result["plan_id"],
+        plan_version=result["plan_version"],
+        sms_notification=result["sms_notification"],
+        evacuation_orders_sent=result["evacuation_orders_sent"],
+    )
+
+
+@router.get(
+    "/notifications/sms-log",
+    response_model=SMSLogResponse,
+    tags=["Notifications"],
+    summary="Get SMS dispatch log",
+    description="Returns the log of all mock SMS dispatches.",
+)
+async def get_sms_log(plan_id: Optional[str] = None, limit: int = 100):
+    """Get SMS dispatch log, optionally filtered by plan."""
+    sms_service = get_sms_service()
+    entries = sms_service.get_log(plan_id=plan_id, limit=limit)
+    # Convert dataclass instances to dicts for Pydantic validation
+    entry_dicts = [entry.__dict__ if hasattr(entry, '__dict__') else entry for entry in entries]
+    return SMSLogResponse(entries=entry_dicts, total=len(entry_dicts))

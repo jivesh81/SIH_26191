@@ -172,6 +172,7 @@ class RelocationOptimizer:
         # Constraints
         self._add_population_constraints(habitations, active_shelters, x, u)
         self._add_shelter_capacity_constraints(active_shelters, x, constraints)
+        self._add_single_site_constraints(habitations, active_shelters, x)
         self._add_route_constraints(habitations, routes, y, constraints)
         self._add_relocation_constraints(habitations, relocation_sites, z, constraints)
         self._add_bridge_constraints(routes, y, constraints)
@@ -211,10 +212,28 @@ class RelocationOptimizer:
     ):
         """Shelter assignments must not exceed effective capacity with buffer."""
         for s in shelters:
-            assigned_vars = [x[(h.id, s.id)] for h_id in x if h_id[1] == s.id]
+            assigned_vars = [var for key, var in x.items() if key[1] == s.id]
             if assigned_vars:
                 max_allowed = int(s.effective_capacity * constraints.capacity_utilization_limit)
                 self.model.Add(sum(assigned_vars) <= max_allowed)
+
+    def _add_single_site_constraints(
+        self,
+        habitations: List[Habitation],
+        shelters: List[Shelter],
+        x: Dict[Tuple[str, str], cp_model.IntVar],
+    ):
+        """Each habitation assigned to at most one shelter (all-or-nothing, no splitting)."""
+        for h in habitations:
+            shelter_vars = []
+            for s in shelters:
+                if (h.id, s.id) in x:
+                    w = self.model.NewBoolVar(f"w_{h.id}_{s.id}")
+                    self.model.Add(x[(h.id, s.id)] == h.population).OnlyEnforceIf(w)
+                    self.model.Add(x[(h.id, s.id)] == 0).OnlyEnforceIf(w.Not())
+                    shelter_vars.append(w)
+            if shelter_vars:
+                self.model.Add(sum(shelter_vars) <= 1)
 
     def _add_route_constraints(
         self,

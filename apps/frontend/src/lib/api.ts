@@ -1,4 +1,8 @@
-const API_BASE = 'http://localhost:8000';
+const API_BASE = 'http://localhost:8000/api/v1';
+
+// =============================================================================
+// Types
+// =============================================================================
 
 export interface Habitation {
   id: string;
@@ -14,11 +18,15 @@ export interface Habitation {
   evacuation_route_id: string | null;
   is_accessible: boolean;
   priority_rank: number | null;
-  geometry?: {
-    type: string;
-    coordinates: number[];
-  };
+  geometry?: any;
   properties?: Record<string, any>;
+}
+
+export enum RiskLevel {
+  RED_ZONE = 'RED_ZONE',
+  HIGH = 'HIGH',
+  MEDIUM = 'MEDIUM',
+  LOW = 'LOW',
 }
 
 export interface Site {
@@ -109,10 +117,7 @@ export interface OptimizationResponse {
   assignments: OptimizationAssignment[];
   total_assigned_population: number;
   total_unmet_population: number;
-  site_capacities: Record<
-    string,
-    SiteCapacitySummary
-  >;
+  site_capacities: Record<string, SiteCapacitySummary>;
   infeasibility_reasons: InfeasibilityReason[];
   computation_time_ms?: number;
   solver_stats?: Record<string, any>;
@@ -133,48 +138,56 @@ export interface PlanVersion {
   affected_routes: string[];
 }
 
-/*
- * Matches the ACTUAL backend /plan response:
- *
- * plan_status
- * assignments
- * unmet_habitations
- * unmet_priority_count
- * unmet_other_count
- * total_distance_km
- * approval_status
- * last_event
- */
-export interface BackendPlanResponse {
-  plan_status: string;
+export interface BackendPlan {
+  version?: number;
+  plan_id?: string;
+  status?: string;
+  plan_status?: string;
+
+  total_assigned_population?: number;
+  total_unmet_population?: number;
+
+  optimization_status?: string;
+
+  created_at?: string;
+  invalidated_at?: string | null;
+  invalidation_reason?: string | null;
+
+  affected_assignments?: string[];
+  affected_sites?: string[];
+  affected_routes?: string[];
 
   assignments: Array<{
     habitation_id: string;
     site_id: string;
     households?: number;
+    population?: number;
     distance_km?: number;
     travel_time_min?: number;
+    [key: string]: any;
   }>;
 
-  unmet_habitations: string[];
+  unmet_habitations?: string[];
 
-  unmet_priority_count: number;
+  unmet_priority_count?: number;
+  unmet_other_count?: number;
 
-  unmet_other_count: number;
+  total_distance_km?: number;
 
-  total_distance_km: number;
-
-  approval_status: string;
+  approval_status?: string;
 
   last_event?: {
     event_type?: string;
     target_id?: string;
     magnitude?: number;
+    [key: string]: any;
   } | null;
+
+  [key: string]: any;
 }
 
 export interface ActivePlanResponse {
-  plan: any;
+  plan: BackendPlan;
   all_versions: PlanVersion[];
 }
 
@@ -226,29 +239,28 @@ export interface DisasterEvent {
   [key: string]: any;
 }
 
-interface GeoJSONFeature<
-  T = Record<string, any>
-> {
+interface GeoJSONFeature<T = Record<string, any>> {
   type: 'Feature';
   geometry?: any;
   properties?: T;
-  id?: string;
+  id?: string | number;
 }
 
 interface GeoJSONFeatureCollection<
   T = Record<string, any>
 > {
   type: 'FeatureCollection';
-  features: Array<
-    GeoJSONFeature<T>
-  >;
+  features: Array<GeoJSONFeature<T>>;
 }
+
+// =============================================================================
+// Feature converters
+// =============================================================================
 
 function featureToHabitation(
   feature: GeoJSONFeature
 ): Habitation {
-  const p =
-    feature.properties ?? {};
+  const p = feature.properties ?? {};
 
   return {
     id: String(
@@ -279,23 +291,18 @@ function featureToHabitation(
     ),
 
     hazard_exposure:
-      Array.isArray(
-        p.hazard_exposure
-      )
+      Array.isArray(p.hazard_exposure)
         ? p.hazard_exposure
         : [],
 
     nearest_shelter_id:
-      p.nearest_shelter_id ??
-      null,
+      p.nearest_shelter_id ?? null,
 
     nearest_shelter_distance_m:
-      p.nearest_shelter_distance_m ??
-      null,
+      p.nearest_shelter_distance_m ?? null,
 
     evacuation_route_id:
-      p.evacuation_route_id ??
-      null,
+      p.evacuation_route_id ?? null,
 
     is_accessible:
       p.is_accessible !== false,
@@ -306,15 +313,15 @@ function featureToHabitation(
     geometry:
       feature.geometry,
 
-    properties: p,
+    properties:
+      p,
   };
 }
 
 function featureToSite(
   feature: GeoJSONFeature
 ): Site {
-  const p =
-    feature.properties ?? {};
+  const p = (feature.properties ?? feature) as Record<string, any>;
 
   return {
     id: String(
@@ -381,7 +388,7 @@ function featureToSite(
     available_capacity: Number(
       p.available_capacity ??
       p.effective_capacity ??
-      0
+      (Number(p.max_capacity ?? 0) - Number(p.current_allocation ?? 0))
     ),
 
     utilization_pct: Number(
@@ -391,15 +398,15 @@ function featureToSite(
     geometry:
       feature.geometry,
 
-    properties: p,
+    properties:
+      p,
   };
 }
 
 function featureToRoute(
   feature: GeoJSONFeature
 ): Route {
-  const p =
-    feature.properties ?? {};
+  const p = feature.properties ?? {};
 
   return {
     id: String(
@@ -413,6 +420,7 @@ function featureToRoute(
       p.name ??
       p.route_name ??
       feature.id ??
+      p.route_id ??
       'Unknown Route'
     ),
 
@@ -438,7 +446,8 @@ function featureToRoute(
     ),
 
     status: String(
-      p.status ?? 'open'
+      p.status ??
+      'open'
     ),
 
     bridge_dependencies:
@@ -461,46 +470,159 @@ function featureToRoute(
       p.utilization_pct ?? 0
     ),
 
-    properties: p,
+    properties:
+      p,
   };
 }
+
+// =============================================================================
+// Error formatting
+// =============================================================================
+
+function formatApiError(
+  status: number,
+  errorBody: any
+): string {
+  const detail =
+    errorBody?.detail;
+
+  // FastAPI validation errors
+  if (Array.isArray(detail)) {
+    const messages = detail.map(
+      (item: any) => {
+        if (
+          typeof item === 'string'
+        ) {
+          return item;
+        }
+
+        const message =
+          item?.msg ??
+          item?.message;
+
+        const location =
+          Array.isArray(item?.loc)
+            ? item.loc.join(' → ')
+            : '';
+
+        if (
+          message &&
+          location
+        ) {
+          return `${location}: ${message}`;
+        }
+
+        if (message) {
+          return message;
+        }
+
+        try {
+          return JSON.stringify(item);
+        } catch {
+          return String(item);
+        }
+      }
+    );
+
+    return `HTTP ${status}: ${messages.join(
+      ' | '
+    )}`;
+  }
+
+  // Object detail
+  if (
+    detail &&
+    typeof detail === 'object'
+  ) {
+    try {
+      return `HTTP ${status}: ${JSON.stringify(
+        detail
+      )}`;
+    } catch {
+      return `HTTP ${status}`;
+    }
+  }
+
+  // String detail
+  if (
+    typeof detail === 'string' &&
+    detail.trim()
+  ) {
+    return `HTTP ${status}: ${detail}`;
+  }
+
+  // Other JSON response
+  if (
+    errorBody &&
+    typeof errorBody === 'object'
+  ) {
+    try {
+      return `HTTP ${status}: ${JSON.stringify(
+        errorBody
+      )}`;
+    } catch {
+      return `HTTP ${status}`;
+    }
+  }
+
+  return `HTTP ${status}`;
+}
+
+// =============================================================================
+// Generic fetch helper
+// =============================================================================
 
 async function fetchJson<T>(
   url: string,
   options?: RequestInit
 ): Promise<T> {
-  const response =
-    await fetch(
-      `${API_BASE}${url}`,
-      {
-        headers: {
-          'Content-Type':
-            'application/json',
-        },
-        ...options,
-      }
-    );
+  const response = await fetch(
+    `${API_BASE}${url}`,
+    {
+      headers: {
+        'Content-Type':
+          'application/json',
+
+        ...(options?.headers || {}),
+      },
+
+      ...options,
+    }
+  );
 
   if (!response.ok) {
-    const error =
-      await response
-        .json()
-        .catch(() => ({
-          detail:
-            `HTTP ${response.status}`,
-        }));
+    let errorBody: any = null;
+
+    try {
+      errorBody =
+        await response.json();
+    } catch {
+      errorBody = null;
+    }
 
     throw new Error(
-      error.detail ||
-      `HTTP ${response.status}`
+      formatApiError(
+        response.status,
+        errorBody
+      )
     );
   }
 
   return response.json();
 }
 
+// =============================================================================
+// API
+// =============================================================================
+
 export const api = {
+
+  // ===========================================================================
+  // HABITATIONS
+  // ===========================================================================
+
   habitations: {
+
     list: async (
       params?: {
         page?: number;
@@ -555,9 +677,12 @@ export const api = {
       }
 
       const data =
-        await fetchJson<
-          GeoJSONFeatureCollection
-        >(
+        await fetchJson<{
+          habitations: any[];
+          total: number;
+          page: number;
+          page_size: number;
+        }>(
           `/habitations${query.toString()
             ? `?${query.toString()}`
             : ''
@@ -565,31 +690,37 @@ export const api = {
         );
 
       const habitations =
-        data.features.map(
+        data.habitations.map(
           featureToHabitation
         );
 
       return {
         habitations,
         features:
-          data.features,
+          data.habitations,
         total:
-          habitations.length,
+          data.total,
         page:
-          params?.page ?? 1,
+          data.page,
         page_size:
-          params?.page_size ??
-          habitations.length,
+          data.page_size,
       };
     },
 
-    get: (id: string) =>
+    get: (
+      id: string
+    ) =>
       fetchJson<Habitation>(
         `/habitations/${id}`
       ),
   },
 
+  // ===========================================================================
+  // SITES
+  // ===========================================================================
+
   sites: {
+
     list: async (
       params?: {
         page?: number;
@@ -631,9 +762,12 @@ export const api = {
       }
 
       const data =
-        await fetchJson<
-          GeoJSONFeatureCollection
-        >(
+        await fetchJson<{
+          sites: any[];
+          total: number;
+          page: number;
+          page_size: number;
+        }>(
           `/sites${query.toString()
             ? `?${query.toString()}`
             : ''
@@ -641,31 +775,37 @@ export const api = {
         );
 
       const sites =
-        data.features.map(
+        data.sites.map(
           featureToSite
         );
 
       return {
         sites,
         features:
-          data.features,
+          data.sites,
         total:
-          sites.length,
+          data.total,
         page:
-          params?.page ?? 1,
+          data.page,
         page_size:
-          params?.page_size ??
-          sites.length,
+          data.page_size,
       };
     },
 
-    get: (id: string) =>
+    get: (
+      id: string
+    ) =>
       fetchJson<Site>(
         `/sites/${id}`
       ),
   },
 
+  // ===========================================================================
+  // ROUTES
+  // ===========================================================================
+
   routes: {
+
     list: async (
       params?: {
         page?: number;
@@ -705,7 +845,9 @@ export const api = {
         );
       }
 
-      if (params?.route_type) {
+      if (
+        params?.route_type
+      ) {
         query.set(
           'route_type',
           params.route_type
@@ -713,90 +855,134 @@ export const api = {
       }
 
       const data =
-        await fetchJson<
-          GeoJSONFeatureCollection
-        >(
-          `/roads${query.toString()
+        await fetchJson<{
+          routes: any[];
+          total: number;
+          page: number;
+          page_size: number;
+        }>(
+          `/routes${query.toString()
             ? `?${query.toString()}`
             : ''
           }`
         );
 
       const routes =
-        data.features.map(
+        data.routes.map(
           featureToRoute
         );
 
       return {
         routes,
         features:
-          data.features,
+          data.routes,
         total:
-          routes.length,
+          data.total,
         page:
-          params?.page ?? 1,
+          data.page,
         page_size:
-          params?.page_size ??
-          routes.length,
+          data.page_size,
       };
     },
 
-    get: (id: string) =>
+    get: (
+      id: string
+    ) =>
       fetchJson<Route>(
-        `/roads/${id}`
+        `/routes/${id}`
       ),
 
-    feasible: () =>
-      fetchJson<Route[]>(
-        `/roads/feasible`
-      ),
+    feasible: async () => {
+      const data =
+        await fetchJson<{
+          routes: any[];
+          total: number;
+          page: number;
+          page_size: number;
+        }>(
+          `/routes?page=1&page_size=200&open_only=true`
+        );
+
+      return data.routes.map(
+        featureToRoute
+      );
+    },
   },
 
+  // ===========================================================================
+  // ROUTE FEASIBILITY
+  // ===========================================================================
+
   feasibility: {
+
     all: async () => {
       const data =
-        await fetchJson<any>(
-          `/roads`
+        await fetchJson<{
+          routes: any[];
+          total: number;
+          page: number;
+          page_size: number;
+        }>(
+          `/routes?page=1&page_size=200&open_only=false`
         );
 
       const routes =
-        Array.isArray(data)
-          ? data
-          : data?.features ?? [];
+        data.routes.map(
+          featureToRoute
+        );
 
       return {
         routes,
         total:
           routes.length,
+
         feasible_count:
-          routes.length,
-        infeasible_count: 0,
+          routes.filter(
+            route =>
+              route.is_feasible
+          ).length,
+
+        infeasible_count:
+          routes.filter(
+            route =>
+              !route.is_feasible
+          ).length,
       };
     },
 
     fromHabitation: async (
       habitationId: string
-    ) => ({
-      routes: [],
-      total: 0,
-      feasible_count: 0,
-      infeasible_count: 0,
-      habitation_id:
-        habitationId,
-    }),
+    ) => {
+      return {
+        routes: [],
+        total: 0,
+        feasible_count: 0,
+        infeasible_count: 0,
+        habitation_id:
+          habitationId,
+      };
+    },
 
     toSite: async (
       siteId: string
-    ) => ({
-      routes: [],
-      total: 0,
-      feasible_count: 0,
-      infeasible_count: 0,
-      site_id: siteId,
-    }),
+    ) => {
+      return {
+        routes: [],
+        total: 0,
+        feasible_count: 0,
+        infeasible_count: 0,
+        site_id:
+          siteId,
+      };
+    },
   },
 
+  // ===========================================================================
+  // OPTIMIZATION
+  // ===========================================================================
+
   optimization: {
+
     run: (
       body: {
         habitation_ids?: string[];
@@ -814,140 +1000,95 @@ export const api = {
       ),
   },
 
-  plan: {
-    /*
-     * Backend exposes /plan.
-     */
-    active: async () => {
-      const backendPlan =
-        await fetchJson<
-          BackendPlanResponse
-        >(`/plan`);
+  // ===========================================================================
+  // PLAN
+  // ===========================================================================
 
-      const assignedPopulation =
-        backendPlan.assignments.reduce(
-          (
-            sum,
-            assignment
-          ) =>
-            sum +
-            Number(
-              assignment.households ??
-              0
-            ),
-          0
+  plan: {
+
+    active: async () => {
+      const response =
+        await fetchJson<any>(
+          `/plan/active`
         );
 
-      const unmetPopulation =
-        backendPlan
-          .unmet_habitations
-          .length;
+      const rawPlan =
+        response?.plan ??
+        response;
+
+      const allVersions =
+        Array.isArray(
+          response?.all_versions
+        )
+          ? response.all_versions
+          : [];
 
       return {
-        plan: {
-          version: 1,
+        plan:
+          rawPlan,
 
-          plan_id:
-            'current',
-
-          status:
-            backendPlan.plan_status ??
-            'UNKNOWN',
-
-          total_assigned_population:
-            assignedPopulation,
-
-          total_unmet_population:
-            unmetPopulation,
-
-          optimization_status:
-            backendPlan.plan_status ??
-            'UNKNOWN',
-
-          created_at:
-            new Date().toISOString(),
-
-          invalidated_at:
-            null,
-
-          invalidation_reason:
-            null,
-
-          affected_assignments:
-            [],
-
-          affected_sites: [],
-
-          affected_routes: [],
-
-          assignments:
-            backendPlan.assignments,
-
-          approval_status:
-            backendPlan.approval_status,
-
-          total_distance_km:
-            backendPlan.total_distance_km,
-
-          unmet_habitations:
-            backendPlan
-              .unmet_habitations,
-
-          unmet_priority_count:
-            backendPlan
-              .unmet_priority_count,
-
-          unmet_other_count:
-            backendPlan
-              .unmet_other_count,
-
-          last_event:
-            backendPlan.last_event ??
-            null,
-        },
-
-        all_versions: [],
+        all_versions:
+          allVersions,
       };
     },
 
-    /*
-     * Human authority approval.
-     *
-     * Backend endpoint:
-     * POST /plan/approve
-     */
-    approve: async () => {
+    approve: async (
+      planId?: string
+    ) => {
+      const options:
+        RequestInit = {
+        method: 'POST',
+      };
+
+      if (planId) {
+        options.body =
+          JSON.stringify({
+            plan_id:
+              planId,
+          });
+      }
+
       return fetchJson<any>(
         `/plan/approve`,
-        {
-          method: 'POST',
-        }
+        options
       );
     },
   },
 
+  // ===========================================================================
+  // EVENTS
+  // ===========================================================================
+
   events: {
-    /*
-     * Current backend exposes
-     * /simulate-event.
-     */
-    trigger: (
+
+    trigger: async (
       event: DisasterEvent
-    ) =>
-      fetchJson<EventTriggerResponse>(
-        `/simulate-event`,
+    ) => {
+      /*
+       * Keep this console output temporarily.
+       * It lets us verify the exact payload
+       * being sent from the dashboard.
+       */
+      console.log(
+        '[Aapda Setu] Disaster event:',
+        event
+      );
+
+      return fetchJson<EventTriggerResponse>(
+        `/events/trigger`,
         {
           method: 'POST',
           body:
             JSON.stringify(event),
         }
-      ),
+      );
+    },
 
-    log: async () => {
-      /*
-       * No /events route in the
-       * currently verified backend.
-       */
+    /*
+     * No verified event-log endpoint.
+     * Return a safe empty state.
+     */
+    log: async (): Promise<EventLogResponse> => {
       return {
         events: [],
         total: 0,
@@ -955,6 +1096,38 @@ export const api = {
     },
   },
 };
+
+// =============================================================================
+// Health / Readiness
+// =============================================================================
+
+export interface HealthResponse {
+  status: string;
+  service: string;
+  version: string;
+  data_mode: string;
+}
+
+export interface ReadinessResponse {
+  status: string;
+  service: string;
+}
+
+export async function getHealth() {
+  return fetchJson<HealthResponse>('/health');
+}
+
+export async function getReadiness() {
+  return fetchJson<ReadinessResponse>('/ready');
+}
+
+export async function getApiHealth() {
+  return fetchJson<HealthResponse>('/api/v1/health');
+}
+
+// =============================================================================
+// Convenience functions
+// =============================================================================
 
 export async function runOptimization(
   body: {
@@ -980,8 +1153,12 @@ export async function getActivePlan() {
   return api.plan.active();
 }
 
-export async function approvePlan() {
-  return api.plan.approve();
+export async function approvePlan(
+  planId?: string
+) {
+  return api.plan.approve(
+    planId
+  );
 }
 
 export async function getEventLog() {
@@ -1021,6 +1198,254 @@ export async function getRoutes(
   });
 }
 
+// =============================================================================
+// Route Feasibility
+// =============================================================================
+
+export interface RouteFeasibilityRequest {
+  habitation_id: string;
+  site_id: string;
+}
+
+export interface RouteFeasibilityResponse {
+  habitation_id: string;
+  site_id: string;
+  feasible: boolean;
+  distance_km: number | null;
+  travel_time_min: number | null;
+  reason: string;
+  route_used: string | null;
+  bottlenecks: string[];
+}
+
+export interface RouteFeasibilityListResponse {
+  routes: RouteFeasibilityResponse[];
+  total: number;
+  feasible_count: number;
+  infeasible_count: number;
+}
+
+export async function checkRouteFeasibility(
+  habitationId: string,
+  siteId: string
+) {
+  return fetchJson<RouteFeasibilityResponse>(
+    `/intelligence/route/feasibility/habitation/${habitationId}?site_id=${siteId}`
+  );
+}
+
+export async function checkAllRoutesFromHabitation(habitationId: string) {
+  return fetchJson<RouteFeasibilityListResponse>(
+    `/intelligence/route/feasibility/habitation/${habitationId}`
+  );
+}
+
+export async function checkAllRoutesToSite(siteId: string) {
+  return fetchJson<RouteFeasibilityListResponse>(
+    `/intelligence/route/feasibility/site/${siteId}`
+  );
+}
+
 export async function getAllRouteFeasibility() {
   return api.feasibility.all();
+}
+
+// =============================================================================
+// ML Predictive Risk
+// =============================================================================
+
+export interface PredictedRiskRequest {
+  habitation_id: string;
+  weather?: Record<
+    string,
+    number
+  >;
+}
+
+export interface PredictedRiskResponse {
+  habitation_id: string;
+  habitation_name: string;
+  deterministic_risk_level: string;
+  ml_risk_level: string;
+  final_risk_level: string;
+  ml_probabilities:
+  Record<string, number>;
+  explanation: string;
+  data_source: string;
+  ml_model: string;
+}
+
+export interface PredictedRiskListResponse {
+  predictions:
+  PredictedRiskResponse[];
+  total: number;
+}
+
+// =============================================================================
+// Risk Assessment (Deterministic)
+// =============================================================================
+
+export interface RiskAssessmentResponse {
+  habitation_id: string;
+  habitation_name: string;
+  total_score: number;
+  risk_level: string;
+  factors: {
+    vulnerability_score: number;
+    flood_exposure: number;
+    erosion_exposure: number;
+    storm_surge_exposure: number;
+    population_factor: number;
+    accessibility_factor: number;
+  };
+  explanation: string;
+}
+
+export interface RiskAssessmentListResponse {
+  assessments: RiskAssessmentResponse[];
+  total: number;
+  red_zone_count: number;
+  high_risk_count: number;
+  medium_risk_count: number;
+  low_risk_count: number;
+}
+
+export async function getRiskAssessments() {
+  return fetchJson<RiskAssessmentListResponse>('/intelligence/risk');
+}
+
+export async function getRiskAssessment(habitationId: string) {
+  return fetchJson<RiskAssessmentResponse>(`/intelligence/risk/${habitationId}`);
+}
+
+export async function getRedZoneHabitations() {
+  return fetchJson<RiskAssessmentResponse[]>('/intelligence/risk/red-zone');
+}
+
+export async function predictRisk(
+  request: PredictedRiskRequest
+) {
+  return fetchJson<PredictedRiskResponse>(
+    `/intelligence/risk/predict`,
+    {
+      method: 'POST',
+      body:
+        JSON.stringify(request),
+    }
+  );
+}
+
+export async function predictRiskBatch(
+  weather?: Record<
+    string,
+    number
+  >
+) {
+  const query =
+    weather
+      ? `?${new URLSearchParams(
+        Object.entries(
+          weather
+        ).map(
+          ([key, value]) => [
+            key,
+            String(value),
+          ]
+        )
+      ).toString()}`
+      : '';
+
+  return fetchJson<PredictedRiskListResponse>(
+    `/intelligence/risk/predict/batch${query}`
+  );
+}
+
+// =============================================================================
+// SMS / Notification Log
+// =============================================================================
+
+export interface SMSLogEntry {
+  id: string;
+  plan_id: string;
+  plan_version: number;
+  message_type: string;
+  recipient_count: number;
+  message_template: string;
+  message_content: string;
+  status: string;
+  created_at: string;
+  sent_at?: string;
+  delivered_at?: string;
+  metadata?: Record<
+    string,
+    any
+  >;
+}
+
+export interface SMSLogResponse {
+  entries: SMSLogEntry[];
+  total: number;
+}
+
+export async function getSMSLog(
+  planId?: string,
+  limit: number = 100
+) {
+  const query =
+    new URLSearchParams();
+
+  if (planId) {
+    query.set(
+      'plan_id',
+      planId
+    );
+  }
+
+  query.set(
+    'limit',
+    String(limit)
+  );
+
+  return fetchJson<SMSLogResponse>(
+    `/notifications/sms-log?${query.toString()}`
+  );
+}
+
+// =============================================================================
+// Plan Approval + SMS
+// =============================================================================
+
+export interface PlanApprovalRequest {
+  plan_id: string;
+}
+
+export interface PlanApprovalResponse {
+  success: boolean;
+  plan_id?: string;
+  plan_version?: number;
+
+  sms_notification?: {
+    id: string;
+    status: string;
+    message_type: string;
+    recipient_count: number;
+    sent_at: string;
+  };
+
+  evacuation_orders_sent?: number;
+
+  error?: string;
+}
+
+export async function approvePlanAndNotify(
+  request: PlanApprovalRequest
+) {
+  return fetchJson<PlanApprovalResponse>(
+    `/plan/approve`,
+    {
+      method: 'POST',
+      body:
+        JSON.stringify(request),
+    }
+  );
 }
