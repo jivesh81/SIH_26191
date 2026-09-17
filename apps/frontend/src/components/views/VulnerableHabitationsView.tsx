@@ -3,6 +3,7 @@
 import { useHabitations, Habitation } from '@/hooks/useApi';
 import { RiskLevel } from '@/lib/api';
 import { useState, useMemo } from 'react';
+import { useMapState } from '@/context/MapStateContext';
 
 const RISK_COLORS: Record<string, string> = {
   [RiskLevel.RED_ZONE]: '#991b1b',
@@ -39,9 +40,14 @@ function getHabitationValue(habitation: Habitation, key: SortKey): number | stri
 
 export function VulnerableHabitationsView() {
   const { data: habitationsData, isLoading, error } = useHabitations(false);
+  const { setSelection } = useMapState();
   const [searchQuery, setSearchQuery] = useState('');
   const [riskFilter, setRiskFilter] = useState<string | null>(null);
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'asc' | 'desc' }>({ key: 'priority_rank', direction: 'asc' });
+
+  const handleHabitationClick = (habitationId: string) => {
+    setSelection({ selectedHabitationId: habitationId });
+  };
 
   const habitations = habitationsData?.habitations ?? [];
 
@@ -242,7 +248,7 @@ export function VulnerableHabitationsView() {
                   };
 
                   return (
-                    <tr key={habitation.id} className={`${idx % 2 === 0 ? 'bg-slate-50' : 'bg-white'} hover:bg-slate-50 transition-colors`}>
+                    <tr key={habitation.id} className={`${idx % 2 === 0 ? 'bg-slate-50' : 'bg-white'} hover:bg-slate-50 transition-colors cursor-pointer`} onClick={() => handleHabitationClick(habitation.id)}>
                       <td className="px-4 py-3 font-mono font-semibold text-blue-600 tabular-nums">
                         {habitation.priority_rank ?? '—'}
                       </td>

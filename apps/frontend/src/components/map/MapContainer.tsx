@@ -1,19 +1,26 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 
 import {
   getHabitations,
   getSites,
   getRoutes,
   getActivePlan,
+  checkRouteFeasibility,
+  checkAllRoutesFromHabitation,
+  triggerEvent,
 } from '@/lib/api';
 
 import {
   Habitation,
   Site,
   Route,
+  RouteFeasibilityResponse,
+  DisasterEvent,
 } from '@/lib/api';
+
+import { useMapState } from '@/context/MapStateContext';
 
 interface MapContainerProps {
   onLoad?: (map: any) => void;
@@ -30,6 +37,24 @@ const BARPETA_CENTER: [
   number,
   number
 ] = [91.0, 26.5];
+
+const HAZARD_COLORS = {
+  flood: {
+    high: '#7f1d1d',
+    medium: '#dc2626',
+    low: '#f97316',
+  },
+  erosion: {
+    high: '#7c2d12',
+    medium: '#ea580c',
+    low: '#fb923c',
+  },
+  storm_surge: {
+    high: '#4c1d95',
+    medium: '#7e22ce',
+    low: '#a855f7',
+  },
+};
 
 const RISK_COLORS = {
   RED_ZONE: '#991b1b',
@@ -234,6 +259,123 @@ export function MapContainer({
       routeId: string;
       message: string;
     } | null>(null);
+
+  const [selectedRoute, setSelectedRoute] = useState<RouteFeasibilityResponse | null>(null);
+  const [hazardZones, setHazardZones] = useState<any[]>([]);
+  const [isCheckingRoute, setIsCheckingRoute] = useState(false);
+
+  const [selectedHabitation, setSelectedHabitation] = useState<Habitation | null>(null);
+  const [selectedSite, setSelectedSite] = useState<Site | null>(null);
+
+  const checkRouteAndDisplay = useCallback(async (
+    map: any,
+    habitation: Habitation,
+    site: Site
+  ) => {
+    if (!habitation || !site) return;
+    
+    setIsCheckingRoute(true);
+    try {
+      const result = await checkRouteFeasibility(habitation.id, site.id);
+      setSelectedRoute(result);
+      
+      // If feasible and route geometry exists, add it to the map as a highlighted route
+      if (result.feasible && result.route_used) {
+        const routeRes = await getRoutes({ open_only: false });
+        const route = routeRes.routes.find((r: Route) => r.id === result.route_used);
+        if (route?.geometry) {
+          const feature = {
+            type: 'Feature' as const,
+            geometry: route.geometry,
+            properties: {
+              id: route.id,
+              name: route.name,
+              distance_km: result.distance_km,
+              travel_time_min: result.travel_time_min,
+            },
+          };
+          const data = makeFeatureCollection([feature]);
+          
+          if (!map.getSource('selected-route')) {
+            map.addSource('selected-route', { type: 'geojson', data });
+            
+            map.addLayer({
+              id: 'selected-route',
+              type: 'line',
+              source: 'selected-route',
+              paint: {
+                'line-color': '#2563eb',
+                'line-width': 5,
+                'line-opacity': 0.95,
+              },
+            });
+            
+            // Fit map to route
+            const coords = route.geometry.coordinates;
+            if (coords.length >= 2) {
+              const lngs = coords.map((c: any) => c[0]);
+              const lats = coords.map((c: any) => c[1]);
+              map.fitBounds([
+                [Math.min(...lngs), Math.min(...lats)],
+                [Math.max(...lngs), Math.max(...lats)]
+              ], { padding: 100, duration: 700 });
+            }
+          } else {
+            updateSource(map, 'selected-route', data);
+          }
+        }
+      } else {
+        // Remove selected route if exists
+        if (map.getLayer('selected-route')) {
+          map.removeLayer('selected-route');
+        }
+        if (map.getSource('selected-route')) {
+          map.removeSource('selected-route');
+        }
+      }
+    } catch (error) {
+      console.error('Route check failed:', error);
+    } finally {
+      setIsCheckingRoute(false);
+    }
+  }, []);
+
+  const { selection, layerVisibility, setLayerVisibility } = useMapState();
+
+  const [showEventPanel, setShowEventPanel] = useState(false);
+  const [activeEvent, setActiveEvent] = useState<{ type: string; bridgeId?: string; area?: any } | null>(null);
+
+  // Check route when both habitation and site are selected
+  useEffect(() => {
+    if (selection.selectedHabitationId && selection.selectedSiteId && mapRef.current) {
+      // Fetch habitation and site data
+      Promise.all([
+        getHabitations({ accessible_only: false }),
+        getSites({ available_only: false }),
+      ]).then(([habRes, siteRes]) => {
+        const hab = habRes.habitations?.find((h: Habitation) => h.id === selection.selectedHabitationId);
+        const site = siteRes.sites?.find((s: Site) => s.id === selection.selectedSiteId);
+        
+        if (hab) setSelectedHabitation(hab);
+        if (site) setSelectedSite(site);
+        
+        if (hab && site) {
+          checkRouteAndDisplay(mapRef.current, hab, site);
+        }
+      });
+    } else {
+      setSelectedHabitation(null);
+      setSelectedSite(null);
+      setSelectedRoute(null);
+      // Remove selected route layer if exists
+      if (mapRef.current?.getLayer('selected-route')) {
+        mapRef.current.removeLayer('selected-route');
+      }
+      if (mapRef.current?.getSource('selected-route')) {
+        mapRef.current.removeSource('selected-route');
+      }
+    }
+  }, [selection.selectedHabitationId, selection.selectedSiteId, checkRouteAndDisplay]);
 
   /*
    * Create/unlock the browser audio context
@@ -765,6 +907,7 @@ export function MapContainer({
         sitesRes,
         routesRes,
         riskRes,
+        hazardsRes,
       ] = await Promise.all([
         getHabitations({
           accessible_only: false,
@@ -779,6 +922,8 @@ export function MapContainer({
         }),
 
         fetch('/api/v1/intelligence/risk').then(r => r.json()).catch(() => null),
+
+        fetch('/api/v1/intelligence/hazards').then(r => r.json()).catch(() => null),
       ]);
 
       const habitations =
@@ -792,6 +937,9 @@ export function MapContainer({
 
       const riskAssessments = riskRes?.assessments ?? [];
       const riskMap = new Map<string, string>(riskAssessments.map((r: any) => [r.habitation_id, r.risk_level]));
+
+      const hazards = hazardsRes?.features ?? [];
+      setHazardZones(hazards);
 
       addHabitationLayer(
         map,
@@ -808,6 +956,8 @@ export function MapContainer({
         map,
         routes
       );
+
+      addHazardZonesLayer(map, hazards);
 
       await updatePlannedEvacuationLinks(
         map,
@@ -1383,6 +1533,119 @@ export function MapContainer({
     }
   };
 
+  const addHazardZonesLayer = (
+    map: any,
+    hazards: any[]
+  ) => {
+    const features = hazards.map((h) => ({
+      type: 'Feature' as const,
+      geometry: h.geometry,
+      properties: {
+        id: h.properties?.id ?? h.id,
+        hazard_type: h.properties?.hazard_type ?? 'flood',
+        severity: h.properties?.severity ?? 'low',
+      },
+    }));
+
+    const data = makeFeatureCollection(features);
+
+    if (!map.getSource('hazard-zones')) {
+      map.addSource('hazard-zones', {
+        type: 'geojson',
+        data,
+      });
+    } else {
+      updateSource(map, 'hazard-zones', data);
+    }
+
+    // Flood zones
+    if (!map.getLayer('hazard-flood')) {
+      map.addLayer({
+        id: 'hazard-flood',
+        type: 'fill',
+        source: 'hazard-zones',
+        filter: ['==', ['get', 'hazard_type'], 'flood'],
+        paint: {
+          'fill-color': [
+            'match',
+            ['get', 'severity'],
+            'high', HAZARD_COLORS.flood.high,
+            'medium', HAZARD_COLORS.flood.medium,
+            'low', HAZARD_COLORS.flood.low,
+            HAZARD_COLORS.flood.low,
+          ],
+          'fill-opacity': 0.25,
+          'fill-outline-color': [
+            'match',
+            ['get', 'severity'],
+            'high', HAZARD_COLORS.flood.high,
+            'medium', HAZARD_COLORS.flood.medium,
+            'low', HAZARD_COLORS.flood.low,
+            HAZARD_COLORS.flood.low,
+          ],
+        },
+      });
+    }
+
+    // Erosion zones
+    if (!map.getLayer('hazard-erosion')) {
+      map.addLayer({
+        id: 'hazard-erosion',
+        type: 'fill',
+        source: 'hazard-zones',
+        filter: ['==', ['get', 'hazard_type'], 'erosion'],
+        paint: {
+          'fill-color': [
+            'match',
+            ['get', 'severity'],
+            'high', HAZARD_COLORS.erosion.high,
+            'medium', HAZARD_COLORS.erosion.medium,
+            'low', HAZARD_COLORS.erosion.low,
+            HAZARD_COLORS.erosion.low,
+          ],
+          'fill-opacity': 0.25,
+          'fill-outline-color': [
+            'match',
+            ['get', 'severity'],
+            'high', HAZARD_COLORS.erosion.high,
+            'medium', HAZARD_COLORS.erosion.medium,
+            'low', HAZARD_COLORS.erosion.low,
+            HAZARD_COLORS.erosion.low,
+          ],
+        },
+      });
+    }
+
+    // Storm surge zones
+    if (!map.getLayer('hazard-storm-surge')) {
+      map.addLayer({
+        id: 'hazard-storm-surge',
+        type: 'fill',
+        source: 'hazard-zones',
+        filter: ['==', ['get', 'hazard_type'], 'storm_surge'],
+        paint: {
+          'fill-color': [
+            'match',
+            ['get', 'severity'],
+            'high', HAZARD_COLORS.storm_surge.high,
+            'medium', HAZARD_COLORS.storm_surge.medium,
+            'low', HAZARD_COLORS.storm_surge.low,
+            HAZARD_COLORS.storm_surge.low,
+          ],
+          'fill-opacity': 0.25,
+          'fill-outline-color': [
+            'match',
+            ['get', 'severity'],
+            'high', HAZARD_COLORS.storm_surge.high,
+            'medium', HAZARD_COLORS.storm_surge.medium,
+            'low', HAZARD_COLORS.storm_surge.low,
+            HAZARD_COLORS.storm_surge.low,
+          ],
+        },
+      });
+    }
+  };
+
   const updatePlannedEvacuationLinks =
     async (
       map: any,
@@ -1672,6 +1935,52 @@ export function MapContainer({
       }, 5000);
   };
 
+  
+
+  const triggerDisasterEvent = useCallback(async (event: DisasterEvent) => {
+    try {
+      const result = await triggerEvent(event);
+      
+      if (result.plan_invalidated) {
+        // Show event feedback
+        setActiveEvent({
+          type: event.event_type,
+          bridgeId: event.metadata?.bridge_id,
+          area: event.affected_area,
+        });
+        
+        // Refresh routes after event
+        if (mapRef.current) {
+          await refreshRoutes(mapRef.current);
+          await updatePlannedEvacuationLinks(
+            mapRef.current,
+            (await getHabitations({ accessible_only: false })).habitations ?? [],
+            (await getSites({ available_only: false })).sites ?? [],
+            (await getRoutes({ open_only: false })).routes ?? []
+          );
+          
+          // Re-check route if habitation and site are selected
+          if (selection.selectedHabitationId && selection.selectedSiteId) {
+            const [habRes, siteRes] = await Promise.all([
+              getHabitations({ accessible_only: false }),
+              getSites({ available_only: false }),
+            ]);
+            const hab = habRes.habitations?.find((h: Habitation) => h.id === selection.selectedHabitationId);
+            const site = siteRes.sites?.find((s: Site) => s.id === selection.selectedSiteId);
+            if (hab && site) {
+              checkRouteAndDisplay(mapRef.current, hab, site);
+            }
+          }
+        }
+        
+        // Auto-hide event panel after 5 seconds
+        setTimeout(() => setActiveEvent(null), 5000);
+      }
+    } catch (error) {
+      console.error('Event trigger failed:', error);
+    }
+  }, [selection.selectedHabitationId, selection.selectedSiteId, checkRouteAndDisplay]);
+
   return (
     <div
       ref={mapContainerRef}
@@ -1731,6 +2040,69 @@ export function MapContainer({
       {/* Map title */}
       <div className="absolute left-3 top-3 z-10 px-3 py-1.5 rounded-md bg-slate-900/85 text-white text-[11px] font-medium shadow">
         Barpeta · Disaster Decision Map
+      </div>
+
+      {/* Layer Controls */}
+      <div className="absolute right-3 top-3 z-10 bg-white/95 backdrop-blur rounded-lg shadow-lg border border-slate-200 p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-xs font-semibold text-slate-800">Map Layers</span>
+          <button
+            onClick={() => setShowEventPanel(!showEventPanel)}
+            className="ml-auto p-1 rounded text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+            aria-label="Event simulation"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </button>
+        </div>
+        <div className="space-y-1.5 text-[11px]">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={layerVisibility.habitations}
+              onChange={(e) => setLayerVisibility({ habitations: e.target.checked })}
+              className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-slate-700">Vulnerable Habitations</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={layerVisibility.sites}
+              onChange={(e) => setLayerVisibility({ sites: e.target.checked })}
+              className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-slate-700">Relocation Sites</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={layerVisibility.routes}
+              onChange={(e) => setLayerVisibility({ routes: e.target.checked })}
+              className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-slate-700">Roads / Routes</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={layerVisibility.hazardZones}
+              onChange={(e) => setLayerVisibility({ hazardZones: e.target.checked })}
+              className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-slate-700">Risk / Hazard Zones</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={layerVisibility.plannedEvacuation}
+              onChange={(e) => setLayerVisibility({ plannedEvacuation: e.target.checked })}
+              className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-slate-700">Evacuation Routes</span>
+          </label>
+        </div>
       </div>
 
       {/* Legend */}
@@ -1829,6 +2201,248 @@ export function MapContainer({
           </div>
         </div>
       </div>
+
+      {/* Route Details Panel */}
+      {selectedRoute && (
+        <div className="absolute right-3 top-3 z-10 w-80 max-h-[70vh] overflow-y-auto bg-white/95 backdrop-blur rounded-lg shadow-xl border border-slate-200 p-4 animate-slide-up">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-slate-900">Route Details</h3>
+            <button
+              onClick={() => {
+                setSelectedRoute(null);
+                if (mapRef.current?.getLayer('selected-route')) {
+                  mapRef.current.removeLayer('selected-route');
+                }
+                if (mapRef.current?.getSource('selected-route')) {
+                  mapRef.current.removeSource('selected-route');
+                }
+              }}
+              className="text-slate-500 hover:text-slate-900 text-xl leading-none"
+              aria-label="Close route details"
+            >
+              ×
+            </button>
+          </div>
+
+          <div className="space-y-3 text-sm">
+            <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg">
+              <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 19v2m0 0H9m3 0h3" />
+                </svg>
+              </div>
+              <div>
+                <div className="font-medium text-slate-900">{selectedHabitation?.name || 'Habitation'}</div>
+                <div className="text-xs text-slate-500">FROM</div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-0.5 bg-blue-500" />
+              <div className="w-2 h-2 rounded-full bg-blue-500" />
+              <div className="flex-1 h-0.5 bg-blue-500" />
+            </div>
+
+            <div className="flex items-center gap-2 p-2 bg-green-50 rounded-lg">
+              <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
+                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div>
+                <div className="font-medium text-slate-900">{selectedSite?.name || 'Site'}</div>
+                <div className="text-xs text-slate-500">TO</div>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-200 pt-3 space-y-2">
+              <div className="flex justify-between">
+                <span className="text-slate-600">Status</span>
+                <span className={`font-semibold px-2 py-0.5 rounded text-xs ${
+                  selectedRoute.feasible ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                }`}>
+                  {selectedRoute.feasible ? 'FEASIBLE' : 'NOT FEASIBLE'}
+                </span>
+              </div>
+
+              {selectedRoute.distance_km && (
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Distance</span>
+                  <span className="font-medium text-slate-900">{selectedRoute.distance_km.toFixed(1)} km</span>
+                </div>
+              )}
+
+              {selectedRoute.travel_time_min && (
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Travel Time</span>
+                  <span className="font-medium text-slate-900">{Math.round(selectedRoute.travel_time_min)} min</span>
+                </div>
+              )}
+
+              {selectedRoute.route_used && (
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Route</span>
+                  <span className="font-medium text-slate-900 truncate max-w-[160px]">{selectedRoute.route_used}</span>
+                </div>
+              )}
+
+              <div className="flex justify-between">
+                <span className="text-slate-600">Reason</span>
+                <span className="font-medium text-slate-900 truncate max-w-[160px] text-left">{selectedRoute.reason}</span>
+              </div>
+
+              {selectedRoute.bottlenecks && selectedRoute.bottlenecks.length > 0 && (
+                <div className="border-t border-slate-200 pt-2">
+                  <div className="text-xs text-slate-500 mb-1">Bottlenecks / Bridge Dependencies:</div>
+                  <div className="flex flex-wrap gap-1">
+                    {selectedRoute.bottlenecks.map((b: string, i: number) => (
+                      <span key={i} className="px-2 py-0.5 text-xs bg-amber-50 text-amber-700 border border-amber-200 rounded">
+                        {b}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Route Checking Loading */}
+      {isCheckingRoute && !selectedRoute && (
+        <div className="absolute right-3 top-3 z-10 w-72 bg-white/95 backdrop-blur rounded-lg shadow-xl border border-slate-200 p-4 animate-fade-in">
+          <div className="flex items-center gap-3">
+            <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full" />
+            <span className="font-medium text-slate-700">Checking route feasibility...</span>
+          </div>
+        </div>
+      )}
+
+      {/* Event Simulation Panel */}
+      {showEventPanel && (
+        <div className="absolute right-3 top-48 z-10 w-72 bg-white/95 backdrop-blur rounded-lg shadow-xl border border-slate-200 p-4 animate-slide-up">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-slate-900">Disaster Simulation</h3>
+            <button
+              onClick={() => setShowEventPanel(false)}
+              className="text-slate-500 hover:text-slate-900 text-xl leading-none"
+              aria-label="Close event panel"
+            >
+              ×
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="font-medium text-red-800 mb-2">Bridge Collapse</div>
+              <div className="text-xs text-red-700 mb-2">Simulate bridge collapse to test route re-optimization</div>
+              <div className="space-y-1.5">
+                <button
+                  onClick={() => triggerDisasterEvent({
+                    event_type: 'bridge_collapse',
+                    metadata: { bridge_id: 'bridge_beki' },
+                  })}
+                  className="w-full text-left px-3 py-2 text-xs bg-red-100 text-red-800 rounded hover:bg-red-200 transition-colors"
+                >
+                  Beki River Bridge (NH-31) — Affects Barpeta routes
+                </button>
+                <button
+                  onClick={() => triggerDisasterEvent({
+                    event_type: 'bridge_collapse',
+                    metadata: { bridge_id: 'bridge_chaulkhowa' },
+                  })}
+                  className="w-full text-left px-3 py-2 text-xs bg-red-100 text-red-800 rounded hover:bg-red-200 transition-colors"
+                >
+                  Chaulkhowa Bridge (SH-15) — Affects Howly/Pathsala routes
+                </button>
+                <button
+                  onClick={() => triggerDisasterEvent({
+                    event_type: 'bridge_collapse',
+                    metadata: { bridge_id: 'bridge_kaldia' },
+                  })}
+                  className="w-full text-left px-3 py-2 text-xs bg-red-100 text-red-800 rounded hover:bg-red-200 transition-colors"
+                >
+                  Kaldia River Bridge — Affects Mandia/Goberadhana routes
+                </button>
+              </div>
+            </div>
+
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="font-medium text-amber-800 mb-2">Shelter Capacity Reduction</div>
+              <div className="text-xs text-amber-700 mb-2">Simulate shelter capacity reduction</div>
+              <div className="space-y-1.5">
+                <button
+                  onClick={() => triggerDisasterEvent({
+                    event_type: 'capacity_reduction',
+                    metadata: { shelter_ids: ['shelter_rc_barpeta', 'shelter_rc_howly'], reduction_pct: 50 },
+                  })}
+                  className="w-full text-left px-3 py-2 text-xs bg-amber-100 text-amber-800 rounded hover:bg-amber-200 transition-colors"
+                >
+                  Barpeta & Howly shelters — 50% capacity reduction
+                </button>
+                <button
+                  onClick={() => triggerDisasterEvent({
+                    event_type: 'capacity_reduction',
+                    metadata: { shelter_ids: ['shelter_rc_mandia', 'shelter_rc_chenga'], reduction_pct: 75 },
+                  })}
+                  className="w-full text-left px-3 py-2 text-xs bg-amber-100 text-amber-800 rounded hover:bg-amber-200 transition-colors"
+                >
+                  Mandia & Chenga shelters — 75% capacity reduction
+                </button>
+              </div>
+            </div>
+
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="font-medium text-blue-800 mb-2">Rainfall Event</div>
+              <div className="text-xs text-blue-700 mb-2">Simulate heavy rainfall increasing flood risk</div>
+              <div className="space-y-1.5">
+                <button
+                  onClick={() => triggerDisasterEvent({
+                    event_type: 'rainfall',
+                    intensity: 150,
+                    duration_hours: 24,
+                    affected_area: { min_lng: 90.5, min_lat: 26.0, max_lng: 91.5, max_lat: 27.0 },
+                  })}
+                  className="w-full text-left px-3 py-2 text-xs bg-blue-100 text-blue-800 rounded hover:bg-blue-200 transition-colors"
+                >
+                  Heavy rainfall (150mm/24h) — District-wide
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Active Event Notification */}
+      {activeEvent && (
+        <div className="absolute left-1/2 top-16 z-50 w-[min(92%,480px)] -translate-x-1/2 animate-slide-up">
+          <div className="rounded-xl border-2 border-amber-500 bg-amber-50 text-amber-900 shadow-2xl p-4">
+            <div className="flex items-start gap-3">
+              <div className="text-2xl">⚠️</div>
+              <div className="flex-1">
+                <div className="font-extrabold text-base tracking-wide">
+                  EVENT SIMULATED: {activeEvent.type.toUpperCase().replace('_', ' ')}
+                </div>
+                {activeEvent.bridgeId && (
+                  <div className="text-sm mt-1">Bridge affected: <span className="font-mono">{activeEvent.bridgeId}</span></div>
+                )}
+                <div className="text-xs text-amber-700 mt-2">
+                  Routes updated. Re-optimization triggered. Check route status.
+                </div>
+              </div>
+              <button
+                onClick={() => setActiveEvent(null)}
+                className="text-amber-700 hover:text-amber-900 text-xl leading-none"
+                aria-label="Close event notification"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

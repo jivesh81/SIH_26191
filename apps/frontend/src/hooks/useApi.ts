@@ -197,14 +197,19 @@ function getPopulation(item: any): number {
 }
 
 function getEffectiveCapacity(item: any): number {
-  return Number(
-    item?.available_capacity ??
+  const explicit = item?.available_capacity ??
     item?.effective_capacity ??
     item?.properties?.available_capacity ??
     item?.properties?.effective_capacity ??
-    item?.properties?.capacity ??
-    0
-  );
+    item?.properties?.capacity;
+
+  if (explicit != null) {
+    return Number(explicit);
+  }
+
+  const maxCap = Number(item?.max_capacity ?? item?.properties?.max_capacity ?? 0);
+  const currentAlloc = Number(item?.current_allocation ?? item?.properties?.current_allocation ?? 0);
+  return maxCap - currentAlloc;
 }
 
 function getActivePlanData(activePlan: any): any {

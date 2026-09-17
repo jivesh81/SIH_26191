@@ -335,8 +335,8 @@ export function SiteCapacityPanel() {
             >
               <option value="">Select a site...</option>
               {siteCapacities.map((site: any) => (
-                <option key={site.id} value={site.id}>
-                  {site.name} ({Number(site.available_capacity ?? 0).toLocaleString()} remaining)
+                <option key={site.site_id} value={site.site_id}>
+                  {site.site_name} ({Number(site.remaining_capacity ?? 0).toLocaleString()} remaining)
                 </option>
               ))}
             </select>

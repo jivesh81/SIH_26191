@@ -2,13 +2,19 @@
 
 import { useSites, Site } from '@/hooks/useApi';
 import { useState, useMemo } from 'react';
+import { useMapState } from '@/context/MapStateContext';
 
 type SortKey = 'suitability_score' | 'max_capacity' | 'available_capacity' | 'utilization_pct' | 'elevation_m' | 'name';
 
 export function RelocationSitesView() {
   const { data: sitesData, isLoading, error } = useSites(false);
+  const { setSelection } = useMapState();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'asc' | 'desc' }>({ key: 'suitability_score', direction: 'desc' });
+
+  const handleSiteClick = (siteId: string) => {
+    setSelection({ selectedSiteId: siteId });
+  };
 
   const sites = sitesData?.sites ?? [];
 
@@ -226,7 +232,7 @@ export function RelocationSitesView() {
                   const utilization = max > 0 ? (allocated / max) * 100 : 0;
 
                   return (
-                    <tr key={site.id} className={`${idx % 2 === 0 ? 'bg-slate-50' : 'bg-white'} hover:bg-slate-50 transition-colors`}>
+                    <tr key={site.id} className={`${idx % 2 === 0 ? 'bg-slate-50' : 'bg-white'} hover:bg-slate-50 transition-colors cursor-pointer`} onClick={() => handleSiteClick(site.id)}>
                       <td className="px-4 py-3">
                         <div>
                           <p className="font-medium text-slate-900">{site.name}</p>
@@ -300,7 +306,7 @@ export function RelocationSitesView() {
           const utilization = max > 0 ? (allocated / max) * 100 : 0;
 
           return (
-            <article key={site.id} className="card-elevated rounded-xl p-5 hover:border-blue-300 transition-all duration-200">
+            <article key={site.id} className="card-elevated rounded-xl p-5 hover:border-blue-300 transition-all duration-200 cursor-pointer" onClick={() => handleSiteClick(site.id)}>
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <h3 className="text-lg font-bold text-slate-900">{site.name}</h3>
