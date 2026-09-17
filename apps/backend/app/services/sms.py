@@ -186,7 +186,11 @@ class SMSService:
         plan_version: int,
         assignments: List[Dict],
     ) -> List[SMSLogEntry]:
-        """Send per-habitation evacuation order SMS (to demo recipients or per-assignment in legacy mode)."""
+        """Send per-habitation evacuation order SMS (one SMS per assignment)."""
+        recipients = _get_demo_recipients()
+        provider = self._get_provider()
+
+        # Send one SMS per assignment
         entries = []
         for a in assignments:
             message_content = self._generate_evacuation_message(
@@ -195,32 +199,25 @@ class SMSService:
                 a.get("route_id", "designated route"),
             )
 
-            mode = _get_recipient_mode()
-            if mode == "demo":
-                recipients = _get_demo_recipients()
-                recipient_count = len(recipients)
+            # Send to first demo recipient (or configured primary contact)
+            if recipients:
+                to_number = recipients[0]
             else:
-                # Legacy mode: one SMS per assignment (to the single demo recipient)
-                recipients = _get_demo_recipients()
-                recipient_count = 1
+                to_number = settings.SMS_TWILIO_FROM_NUMBER or "+919999999999"
 
-            provider = self._get_provider()
-            provider_message_ids = []
-            for recipient in recipients:
-                result = provider.send_sms(
-                    to_number=recipient,
-                    from_number=settings.SMS_TWILIO_FROM_NUMBER or "+919999999999",
-                    body=message_content,
-                )
-                if result.message_id:
-                    provider_message_ids.append(result.message_id)
+            result = provider.send_sms(
+                to_number=to_number,
+                from_number=settings.SMS_TWILIO_FROM_NUMBER or "+919999999999",
+                body=message_content,
+            )
+            provider_message_ids = [result.message_id] if result.message_id else []
 
             entry = SMSLogEntry(
                 id=str(uuid.uuid4())[:8],
                 plan_id=plan_id,
                 plan_version=plan_version,
                 message_type="evacuation_order",
-                recipient_count=recipient_count,
+                recipient_count=1,
                 message_template="evacuation_order_v1",
                 message_content=message_content,
                 status="sent",

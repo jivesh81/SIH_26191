@@ -223,10 +223,10 @@ class TestSMSServiceIntegration:
         assert len(entries) == 2
         for entry in entries:
             assert entry.message_type == "evacuation_order"
-            assert entry.recipient_count == 6
+            assert entry.recipient_count == 1
             assert entry.status == "sent"
             assert entry.metadata["provider"] == "mock"
-            assert len(entry.metadata["provider_message_ids"]) == 6
+            assert len(entry.metadata["provider_message_ids"]) == 1
 
     def test_log_persistence(self):
         """Log persists to file and can be reloaded."""
