@@ -41,24 +41,15 @@ aapda-setu/
 
 ## Quick Start
 
+The demo runs entirely from local synthetic GeoJSON files — **no Postgres, Redis, or Docker required** for the demo mode.
+
 ### Prerequisites
 
 - Node.js 20+
 - Python 3.11+
-- Docker & Docker Compose
 - npm 10+
 
-### 1. Start Infrastructure
-
-```bash
-npm run db:up
-```
-
-This starts:
-- PostgreSQL 16 + PostGIS 3.4 on port 5432
-- Redis 7 on port 6379
-
-### 2. Install Dependencies
+### 1. Install Dependencies
 
 ```bash
 # Frontend
@@ -68,13 +59,7 @@ cd apps/frontend && npm install
 cd apps/backend && pip install -r requirements.txt
 ```
 
-### 3. Seed Database
-
-```bash
-cd apps/backend && python -m app.db.seed
-```
-
-### 4. Run Development Servers
+### 2. Run Development Servers
 
 ```bash
 # Terminal 1: Frontend (port 3000)
@@ -84,11 +69,28 @@ npm run dev --filter=@aapda-setu/frontend
 cd apps/backend && uvicorn app.main:app --reload --port 8000
 ```
 
-### 5. Access the Application
+### 3. Access the Application
 
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:8000/api/v1
 - API Docs: http://localhost:8000/api/v1/docs
+
+The running application reports `"data_mode": "local_synthetic_demo"` — no database or Redis needed.
+
+### Optional: Full Stack with Infrastructure
+
+For production-like development with PostGIS + Redis:
+
+```bash
+# Start infrastructure (PostgreSQL 16 + PostGIS 3.4, Redis 7)
+npm run db:up
+
+# Seed database (when using Postgres)
+cd apps/backend && python -m app.db.seed
+
+# Run with infrastructure
+npm run dev
+```
 
 ## Demo Data
 
@@ -184,22 +186,109 @@ CP-SAT model with:
 - Objectives: minimize travel time, maximize safety, balance load, minimize cost
 - Infeasibility analysis with actionable recommendations
 
-## API Endpoints (Planned)
+## API Endpoints
+
+All endpoints are served under `/api/v1/` prefix.
+
+### Health & Dashboard
 
 ```
 GET    /api/v1/health                    # Health check
-GET    /api/v1/geo/admin-boundaries      # Administrative boundaries
-GET    /api/v1/geo/hazard-zones          # Hazard zones
-GET    /api/v1/geo/infrastructure        # Roads, bridges, culverts
-GET    /api/v1/geo/shelters              # Shelters with capacity
-GET    /api/v1/geo/habitations           # Vulnerable habitations
-GET    /api/v1/geo/routes                # Evacuation routes
-GET    /api/v1/geo/relocation-sites      # Relocation sites
-POST   /api/v1/optimize                  # Run relocation optimization
-POST   /api/v1/simulate                  # Run event simulation
-GET    /api/v1/audit/log                 # Audit trail
-POST   /api/v1/approval/submit           # Submit plan for approval
-POST   /api/v1/approval/review           # Review/approve/reject
+GET    /api/v1/dashboard                 # Dashboard statistics
+```
+
+### Habitations
+
+```
+GET    /api/v1/habitations               # List all vulnerable habitations (paginated)
+GET    /api/v1/habitations/{habitation_id}  # Get habitation by ID
+GET    /api/v1/habitations/high-vulnerability  # Get high vulnerability habitations
+```
+
+### Relocation Sites
+
+```
+GET    /api/v1/sites                     # List all relocation sites (paginated)
+GET    /api/v1/sites/{site_id}           # Get site by ID
+```
+
+### Evacuation Routes
+
+```
+GET    /api/v1/routes                    # List all evacuation routes (paginated)
+GET    /api/v1/routes/{route_id}         # Get route by ID
+GET    /api/v1/routes/feasible           # Get feasible (open) routes
+```
+
+### Hazards
+
+```
+GET    /api/v1/hazards                   # List all hazard zones (paginated)
+GET    /api/v1/hazards/{hazard_id}       # Get hazard zone by ID
+```
+
+### Shelters
+
+```
+GET    /api/v1/shelters                  # List all shelters (paginated)
+GET    /api/v1/shelters/{shelter_id}     # Get shelter by ID
+```
+
+### Events
+
+```
+GET    /api/v1/events                    # List example disaster events
+```
+
+### Core Intelligence - Risk
+
+```
+GET    /api/v1/intelligence/risk                    # Risk assessments for all habitations
+GET    /api/v1/intelligence/risk/red-zone           # All RED_ZONE habitations
+GET    /api/v1/intelligence/risk/{habitation_id}    # Risk assessment for one habitation
+```
+
+### Core Intelligence - ML Predictive Risk
+
+```
+POST   /api/v1/intelligence/risk/predict            # ML-enhanced risk prediction for one habitation
+POST   /api/v1/intelligence/risk/predict/batch      # ML-enhanced risk predictions for all habitations
+```
+
+### Core Intelligence - Effective Capacity
+
+```
+GET    /api/v1/intelligence/capacity                # Effective capacities for all sites
+GET    /api/v1/intelligence/capacity/{site_id}      # Effective capacity for one site
+```
+
+### Core Intelligence - Route Feasibility
+
+```
+GET    /api/v1/intelligence/route/feasibility                    # All habitation-site route feasibility
+GET    /api/v1/intelligence/route/feasibility/habitation/{habitation_id}  # Routes from one habitation
+GET    /api/v1/intelligence/route/feasibility/site/{site_id}           # Routes to one site
+```
+
+### Relocation Optimization
+
+```
+POST   /api/v1/optimization/relocation    # Run relocation optimization (CP-SAT)
+```
+
+### Dynamic Events & Plan Versioning
+
+```
+POST   /api/v1/events/trigger             # Trigger disaster event
+GET    /api/v1/events                     # Get event log
+GET    /api/v1/plan/active                # Get active relocation plan
+```
+
+### Plan Approval & SMS Dispatch
+
+```
+POST   /api/v1/plan/approve               # Approve plan & trigger SMS
+GET    /api/v1/notifications/sms-log      # Get SMS dispatch log
 ```
 
 ## Environment Variables

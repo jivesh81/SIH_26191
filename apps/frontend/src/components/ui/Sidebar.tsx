@@ -1,22 +1,27 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
+import { useState, useEffect, useRef } from "react";
+import { X } from "lucide-react";
 
 interface SidebarProps {
   children: React.ReactNode;
-  position?: 'left' | 'right';
+  position?: "left" | "right";
   defaultOpen?: boolean;
   width?: number;
 }
 
-export function Sidebar({ children, position = 'left', defaultOpen = true, width = 320 }: SidebarProps) {
+export function Sidebar({
+  children,
+  position = "left",
+  defaultOpen = true,
+  width = 320,
+}: SidebarProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     const handleResize = () => {
       if (window.innerWidth < 768) {
         setIsOpen(false);
@@ -24,43 +29,61 @@ export function Sidebar({ children, position = 'left', defaultOpen = true, width
         setIsOpen(defaultOpen);
       }
     };
-    window.addEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
     handleResize();
-    return () => window.removeEventListener('resize', handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, [defaultOpen]);
 
   const toggle = () => setIsOpen(!isOpen);
 
-  if (position === 'right') {
+  if (position === "right") {
     return (
       <>
         <button
           ref={toggleRef}
           onClick={toggle}
           className="fixed right-4 top-20 z-30 p-2 panel panel-elevated rounded-lg shadow-lg border border-navy-700/50 sm:hidden"
-          aria-label={isOpen ? 'Close panel' : 'Open panel'}
+          aria-label={isOpen ? "Close panel" : "Open panel"}
           aria-expanded={isOpen}
         >
-          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isOpen ? "M6 18L18 6M6 6l12 12" : "M9 5l7 7-7 7"} />
+          <svg
+            className="w-5 h-5 text-white"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d={isOpen ? "M6 18L18 6M6 6l12 12" : "M9 5l7 7-7 7"}
+            />
           </svg>
         </button>
         <aside
           ref={sidebarRef}
-          className={`fixed right-0 top-14 bottom-0 z-20 panel panel-elevated border-l border-navy-700/50 shadow-glass-lg transition-transform duration-300 ease-out sm:relative sm:top-0 sm:bottom-auto sm:shadow-none ${isOpen ? 'translate-x-0' : 'translate-x-full'} sm:translate-x-0`}
+          className={`fixed right-0 top-14 bottom-0 z-20 panel panel-elevated border-l border-navy-700/50 shadow-glass-lg transition-transform duration-300 ease-out sm:relative sm:top-0 sm:bottom-auto sm:shadow-none ${isOpen ? "translate-x-0" : "translate-x-full"} sm:translate-x-0`}
           style={{ width: `${width}px` }}
           aria-label="Detail panel"
         >
           <div className="flex items-center justify-between p-3 border-b border-navy-700/50 sm:hidden">
             <h2 className="font-medium text-white">Details</h2>
-            <button onClick={toggle} className="p-1 rounded hover:bg-navy-800/50" aria-label="Close">
+            <button
+              onClick={toggle}
+              className="p-1 rounded hover:bg-navy-800/50"
+              aria-label="Close"
+            >
               <X className="w-5 h-5 text-navy-400" />
             </button>
           </div>
           <div className="h-full overflow-y-auto">{children}</div>
         </aside>
-        {isOpen && typeof window !== 'undefined' && window.innerWidth < 768 && (
-          <div className="fixed inset-0 z-10 bg-navy-950/80 sm:hidden" onClick={toggle} aria-hidden="true" />
+        {isOpen && typeof window !== "undefined" && window.innerWidth < 768 && (
+          <div
+            className="fixed inset-0 z-10 bg-navy-950/80 sm:hidden"
+            onClick={toggle}
+            aria-hidden="true"
+          />
         )}
       </>
     );
@@ -72,29 +95,47 @@ export function Sidebar({ children, position = 'left', defaultOpen = true, width
         ref={toggleRef}
         onClick={toggle}
         className="fixed left-4 top-20 z-30 p-2 panel panel-elevated rounded-lg shadow-lg border border-navy-700/50 sm:hidden"
-        aria-label={isOpen ? 'Close panel' : 'Open panel'}
+        aria-label={isOpen ? "Close panel" : "Open panel"}
         aria-expanded={isOpen}
       >
-        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isOpen ? "M6 18L18 6M6 6l12 12" : "M9 5l7 7-7 7"} />
+        <svg
+          className="w-5 h-5 text-white"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d={isOpen ? "M6 18L18 6M6 6l12 12" : "M9 5l7 7-7 7"}
+          />
         </svg>
       </button>
       <aside
         ref={sidebarRef}
-        className={`fixed left-0 top-14 bottom-0 z-20 panel panel-elevated border-r border-navy-700/50 shadow-glass-lg transition-transform duration-300 ease-out sm:relative sm:top-0 sm:bottom-auto sm:shadow-none ${isOpen ? 'translate-x-0' : '-translate-x-full'} sm:translate-x-0`}
+        className={`fixed left-0 top-14 bottom-0 z-20 panel panel-elevated border-r border-navy-700/50 shadow-glass-lg transition-transform duration-300 ease-out sm:relative sm:top-0 sm:bottom-auto sm:shadow-none ${isOpen ? "translate-x-0" : "-translate-x-full"} sm:translate-x-0`}
         style={{ width: `${width}px` }}
         aria-label="Control panel"
       >
         <div className="flex items-center justify-between p-3 border-b border-navy-700/50 sm:hidden">
           <h2 className="font-medium text-white">Controls</h2>
-          <button onClick={toggle} className="p-1 rounded hover:bg-navy-800/50" aria-label="Close">
+          <button
+            onClick={toggle}
+            className="p-1 rounded hover:bg-navy-800/50"
+            aria-label="Close"
+          >
             <X className="w-5 h-5 text-navy-400" />
           </button>
         </div>
         <div className="h-full overflow-y-auto">{children}</div>
       </aside>
       {isOpen && window.innerWidth < 768 && (
-        <div className="fixed inset-0 z-10 bg-navy-950/80 sm:hidden" onClick={toggle} aria-hidden="true" />
+        <div
+          className="fixed inset-0 z-10 bg-navy-950/80 sm:hidden"
+          onClick={toggle}
+          aria-hidden="true"
+        />
       )}
     </>
   );

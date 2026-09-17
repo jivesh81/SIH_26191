@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import {
   Habitation,
@@ -49,11 +49,11 @@ import {
   getHealth,
   getReadiness,
   getApiHealth,
-} from '@/lib/api';
+} from "@/lib/api";
 
 export function useHabitations(accessibleOnly = true) {
   return useQuery({
-    queryKey: ['habitations', accessibleOnly],
+    queryKey: ["habitations", accessibleOnly],
     queryFn: () => getHabitations({ accessible_only: accessibleOnly }),
     staleTime: 30000,
   });
@@ -61,7 +61,7 @@ export function useHabitations(accessibleOnly = true) {
 
 export function useSites(availableOnly = true) {
   return useQuery({
-    queryKey: ['sites', availableOnly],
+    queryKey: ["sites", availableOnly],
     queryFn: () => getSites({ available_only: availableOnly }),
     staleTime: 30000,
   });
@@ -69,7 +69,7 @@ export function useSites(availableOnly = true) {
 
 export function useRoutes(openOnly = true) {
   return useQuery({
-    queryKey: ['routes', openOnly],
+    queryKey: ["routes", openOnly],
     queryFn: () => getRoutes({ open_only: openOnly }),
     staleTime: 30000,
   });
@@ -77,7 +77,7 @@ export function useRoutes(openOnly = true) {
 
 export function useRouteFeasibility() {
   return useQuery({
-    queryKey: ['route-feasibility'],
+    queryKey: ["route-feasibility"],
     queryFn: getAllRouteFeasibility,
     staleTime: 30000,
   });
@@ -85,7 +85,7 @@ export function useRouteFeasibility() {
 
 export function useRouteFeasibilityCheck(habitationId: string, siteId: string) {
   return useQuery({
-    queryKey: ['route-feasibility', habitationId, siteId],
+    queryKey: ["route-feasibility", habitationId, siteId],
     queryFn: () => checkRouteFeasibility(habitationId, siteId),
     enabled: !!habitationId && !!siteId,
     staleTime: 30000,
@@ -94,7 +94,7 @@ export function useRouteFeasibilityCheck(habitationId: string, siteId: string) {
 
 export function useAllRoutesFromHabitation(habitationId: string) {
   return useQuery({
-    queryKey: ['routes-from-habitation', habitationId],
+    queryKey: ["routes-from-habitation", habitationId],
     queryFn: () => checkAllRoutesFromHabitation(habitationId),
     enabled: !!habitationId,
     staleTime: 30000,
@@ -107,17 +107,17 @@ export function useOptimization() {
   return useMutation({
     mutationFn: runOptimization,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['active-plan'] });
-      queryClient.invalidateQueries({ queryKey: ['event-log'] });
-      queryClient.invalidateQueries({ queryKey: ['habitations'] });
-      queryClient.invalidateQueries({ queryKey: ['sites'] });
+      queryClient.invalidateQueries({ queryKey: ["active-plan"] });
+      queryClient.invalidateQueries({ queryKey: ["event-log"] });
+      queryClient.invalidateQueries({ queryKey: ["habitations"] });
+      queryClient.invalidateQueries({ queryKey: ["sites"] });
     },
   });
 }
 
 export function useActivePlan() {
   return useQuery({
-    queryKey: ['active-plan'],
+    queryKey: ["active-plan"],
     queryFn: getActivePlan,
     refetchInterval: 5000,
   });
@@ -125,7 +125,7 @@ export function useActivePlan() {
 
 export function useEventLog() {
   return useQuery({
-    queryKey: ['event-log'],
+    queryKey: ["event-log"],
     queryFn: getEventLog,
     refetchInterval: 5000,
   });
@@ -137,12 +137,12 @@ export function useTriggerEvent() {
   return useMutation({
     mutationFn: triggerEvent,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['active-plan'] });
-      queryClient.invalidateQueries({ queryKey: ['event-log'] });
-      queryClient.invalidateQueries({ queryKey: ['habitations'] });
-      queryClient.invalidateQueries({ queryKey: ['sites'] });
-      queryClient.invalidateQueries({ queryKey: ['routes'] });
-      queryClient.invalidateQueries({ queryKey: ['route-feasibility'] });
+      queryClient.invalidateQueries({ queryKey: ["active-plan"] });
+      queryClient.invalidateQueries({ queryKey: ["event-log"] });
+      queryClient.invalidateQueries({ queryKey: ["habitations"] });
+      queryClient.invalidateQueries({ queryKey: ["sites"] });
+      queryClient.invalidateQueries({ queryKey: ["routes"] });
+      queryClient.invalidateQueries({ queryKey: ["route-feasibility"] });
     },
   });
 }
@@ -190,14 +190,15 @@ function getSiteItems(data: any): any[] {
 function getPopulation(item: any): number {
   return Number(
     item?.population ??
-    item?.properties?.population ??
-    item?.properties?.affected_population ??
-    0
+      item?.properties?.population ??
+      item?.properties?.affected_population ??
+      0,
   );
 }
 
 function getEffectiveCapacity(item: any): number {
-  const explicit = item?.available_capacity ??
+  const explicit =
+    item?.available_capacity ??
     item?.effective_capacity ??
     item?.properties?.available_capacity ??
     item?.properties?.effective_capacity ??
@@ -207,8 +208,12 @@ function getEffectiveCapacity(item: any): number {
     return Number(explicit);
   }
 
-  const maxCap = Number(item?.max_capacity ?? item?.properties?.max_capacity ?? 0);
-  const currentAlloc = Number(item?.current_allocation ?? item?.properties?.current_allocation ?? 0);
+  const maxCap = Number(
+    item?.max_capacity ?? item?.properties?.max_capacity ?? 0,
+  );
+  const currentAlloc = Number(
+    item?.current_allocation ?? item?.properties?.current_allocation ?? 0,
+  );
   return maxCap - currentAlloc;
 }
 
@@ -242,26 +247,26 @@ export function useKPIs() {
 
   const vulnerablePopulation = habitationItems.reduce(
     (sum, habitation) => sum + getPopulation(habitation),
-    0
+    0,
   );
 
   const totalEffectiveCapacity = siteItems.reduce(
     (sum, site) => sum + getEffectiveCapacity(site),
-    0
+    0,
   );
 
   const assignedPopulation = Number(
     activePlanData?.total_assigned_population ??
-    activePlanData?.assigned_population ??
-    activePlanData?.summary?.total_assigned_population ??
-    0
+      activePlanData?.assigned_population ??
+      activePlanData?.summary?.total_assigned_population ??
+      0,
   );
 
   const unmetPopulation = Number(
     activePlanData?.total_unmet_population ??
-    activePlanData?.unmet_population ??
-    activePlanData?.summary?.total_unmet_population ??
-    0
+      activePlanData?.unmet_population ??
+      activePlanData?.summary?.total_unmet_population ??
+      0,
   );
 
   const activePlanVersion =
@@ -271,9 +276,7 @@ export function useKPIs() {
     0;
 
   const activePlanStatus =
-    activePlanData?.status ??
-    activePlanData?.plan_status ??
-    'none';
+    activePlanData?.status ?? activePlanData?.plan_status ?? "none";
 
   return {
     vulnerablePopulation,
@@ -338,11 +341,7 @@ export function useSiteCapacities() {
     const properties = site?.properties ?? {};
 
     const siteId =
-      site?.id ??
-      site?.site_id ??
-      properties?.id ??
-      properties?.site_id ??
-      '';
+      site?.id ?? site?.site_id ?? properties?.id ?? properties?.site_id ?? "";
 
     const siteName =
       site?.name ??
@@ -353,9 +352,9 @@ export function useSiteCapacities() {
 
     const maxCapacity = Number(
       site?.max_capacity ??
-      properties?.max_capacity ??
-      properties?.capacity ??
-      0
+        properties?.max_capacity ??
+        properties?.capacity ??
+        0,
     );
 
     const availableCapacity = getEffectiveCapacity(site);
@@ -365,14 +364,10 @@ export function useSiteCapacities() {
       site_name: siteName,
       max_capacity: maxCapacity,
       current_allocation: Number(
-        site?.current_allocation ??
-        properties?.current_allocation ??
-        0
+        site?.current_allocation ?? properties?.current_allocation ?? 0,
       ),
       allocated_population: Number(
-        site?.allocated_population ??
-        properties?.allocated_population ??
-        0
+        site?.allocated_population ?? properties?.allocated_population ?? 0,
       ),
       remaining_capacity: availableCapacity,
       assigned_habitations: [],
@@ -436,7 +431,7 @@ export function useTriggerEventMutation() {
 
 export function usePredictRisk(request: PredictedRiskRequest) {
   return useQuery({
-    queryKey: ['predict-risk', request.habitation_id, request.weather],
+    queryKey: ["predict-risk", request.habitation_id, request.weather],
     queryFn: () => predictRisk(request),
     enabled: !!request.habitation_id,
   });
@@ -444,7 +439,7 @@ export function usePredictRisk(request: PredictedRiskRequest) {
 
 export function usePredictRiskBatch(weather?: Record<string, number>) {
   return useQuery({
-    queryKey: ['predict-risk-batch', weather],
+    queryKey: ["predict-risk-batch", weather],
     queryFn: () => predictRiskBatch(weather),
   });
 }
@@ -455,7 +450,7 @@ export function usePredictRiskBatch(weather?: Record<string, number>) {
 
 export function useRiskAssessments() {
   return useQuery({
-    queryKey: ['risk-assessments'],
+    queryKey: ["risk-assessments"],
     queryFn: getRiskAssessments,
     staleTime: 30000,
   });
@@ -463,7 +458,7 @@ export function useRiskAssessments() {
 
 export function useRiskAssessment(habitationId: string) {
   return useQuery({
-    queryKey: ['risk-assessment', habitationId],
+    queryKey: ["risk-assessment", habitationId],
     queryFn: () => getRiskAssessment(habitationId),
     enabled: !!habitationId,
     staleTime: 30000,
@@ -472,7 +467,7 @@ export function useRiskAssessment(habitationId: string) {
 
 export function useRedZoneHabitations() {
   return useQuery({
-    queryKey: ['red-zone-habitations'],
+    queryKey: ["red-zone-habitations"],
     queryFn: getRedZoneHabitations,
     staleTime: 30000,
   });
@@ -484,7 +479,7 @@ export function useRedZoneHabitations() {
 
 export function useSMSLog(planId?: string, limit: number = 100) {
   return useQuery({
-    queryKey: ['sms-log', planId, limit],
+    queryKey: ["sms-log", planId, limit],
     queryFn: () => getSMSLog(planId, limit),
     refetchInterval: 5000,
   });
@@ -500,9 +495,9 @@ export function useApprovePlan() {
   return useMutation({
     mutationFn: (request: PlanApprovalRequest) => approvePlanAndNotify(request),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['active-plan'] });
-      queryClient.invalidateQueries({ queryKey: ['sms-log'] });
-      queryClient.invalidateQueries({ queryKey: ['event-log'] });
+      queryClient.invalidateQueries({ queryKey: ["active-plan"] });
+      queryClient.invalidateQueries({ queryKey: ["sms-log"] });
+      queryClient.invalidateQueries({ queryKey: ["event-log"] });
     },
   });
 }
@@ -513,7 +508,7 @@ export function useApprovePlan() {
 
 export function useHealth() {
   return useQuery({
-    queryKey: ['health'],
+    queryKey: ["health"],
     queryFn: getHealth,
     staleTime: 30000,
     refetchInterval: 60000,
@@ -522,7 +517,7 @@ export function useHealth() {
 
 export function useReadiness() {
   return useQuery({
-    queryKey: ['readiness'],
+    queryKey: ["readiness"],
     queryFn: getReadiness,
     staleTime: 30000,
     refetchInterval: 60000,
@@ -531,7 +526,7 @@ export function useReadiness() {
 
 export function useApiHealth() {
   return useQuery({
-    queryKey: ['api-health'],
+    queryKey: ["api-health"],
     queryFn: getApiHealth,
     staleTime: 30000,
     refetchInterval: 60000,

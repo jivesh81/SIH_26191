@@ -139,6 +139,8 @@ def create_sms_provider() -> SMSProvider:
     Factory function to create the appropriate SMS provider based on configuration.
 
     Reads from app.core.config.settings.
+    Falls back to mock provider if Twilio credentials are placeholders.
+    Raises ValueError if Twilio is explicitly configured but credentials are missing.
     """
     from app.core.config import settings
 
@@ -146,23 +148,43 @@ def create_sms_provider() -> SMSProvider:
 
     if provider_name == "twilio":
         # Validate required credentials
-        if not settings.SMS_TWILIO_ACCOUNT_SID:
+        account_sid = settings.SMS_TWILIO_ACCOUNT_SID
+        auth_token = settings.SMS_TWILIO_AUTH_TOKEN
+        from_number = settings.SMS_TWILIO_FROM_NUMBER
+
+        # Check for missing credentials (None or empty) - raise error
+        if not account_sid:
             raise ValueError(
                 "SMS_PROVIDER=twilio but SMS_TWILIO_ACCOUNT_SID is not configured"
             )
-        if not settings.SMS_TWILIO_AUTH_TOKEN:
+        if not auth_token:
             raise ValueError(
                 "SMS_PROVIDER=twilio but SMS_TWILIO_AUTH_TOKEN is not configured"
             )
-        if not settings.SMS_TWILIO_FROM_NUMBER:
+        if not from_number:
             raise ValueError(
                 "SMS_PROVIDER=twilio but SMS_TWILIO_FROM_NUMBER is not configured"
             )
 
+        # Check for placeholder credentials - fall back to mock
+        placeholder_patterns = [
+            "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "PASTE_YOUR_REAL_TWILIO_AUTH_TOKEN_HERE",
+            "your_account_sid",
+            "your_auth_token",
+        ]
+
+        def is_placeholder(value: str) -> bool:
+            return any(pattern in value for pattern in placeholder_patterns)
+
+        if is_placeholder(account_sid) or is_placeholder(auth_token) or is_placeholder(from_number):
+            # Fall back to mock for placeholder credentials
+            return MockSMSProvider()
+
         return TwilioSMSProvider(
-            account_sid=settings.SMS_TWILIO_ACCOUNT_SID,
-            auth_token=settings.SMS_TWILIO_AUTH_TOKEN,
-            from_number=settings.SMS_TWILIO_FROM_NUMBER,
+            account_sid=account_sid,
+            auth_token=auth_token,
+            from_number=from_number,
         )
 
     # Default to mock for any other value (including "mock")

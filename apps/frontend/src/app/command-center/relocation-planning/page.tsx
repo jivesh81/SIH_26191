@@ -1,18 +1,25 @@
-'use client';
+"use client";
 
-import { RelocationPlanningView } from '@/components/views/RelocationPlanningView';
-import { useView } from '@/context/ViewContext';
+import { RelocationPlanningView } from "@/components/views/RelocationPlanningView";
+import { useView } from "@/context/ViewContext";
 
 export default function RelocationPlanningPage() {
   const { currentView } = useView();
-  const activeItem = { label: 'Relocation Planning', description: 'Capacity & site assignment' };
+  const activeItem = {
+    label: "Relocation Planning",
+    description: "Capacity & site assignment",
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-display-md font-extrabold text-slate-900 tracking-tight">{activeItem.label}</h1>
-          <p className="text-body-lg text-slate-600 mt-1">{activeItem.description}</p>
+          <h1 className="text-display-md font-extrabold text-slate-900 tracking-tight">
+            {activeItem.label}
+          </h1>
+          <p className="text-body-lg text-slate-600 mt-1">
+            {activeItem.description}
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <span className="status-badge status-badge-active flex items-center gap-1.5">

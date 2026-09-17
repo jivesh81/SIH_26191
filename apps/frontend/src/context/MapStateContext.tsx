@@ -1,6 +1,13 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  ReactNode,
+} from "react";
 
 export interface MapViewport {
   center: [number, number];
@@ -64,21 +71,26 @@ const MapStateContext = createContext<MapStateContextType | null>(null);
 
 export function MapStateProvider({ children }: { children: ReactNode }) {
   const [viewport, setViewportState] = useState<MapViewport>(DEFAULT_VIEWPORT);
-  const [selection, setSelectionState] = useState<MapSelection>(DEFAULT_SELECTION);
-  const [layerVisibility, setLayerVisibilityState] = useState<MapLayerVisibility>(DEFAULT_LAYER_VISIBILITY);
+  const [selection, setSelectionState] =
+    useState<MapSelection>(DEFAULT_SELECTION);
+  const [layerVisibility, setLayerVisibilityState] =
+    useState<MapLayerVisibility>(DEFAULT_LAYER_VISIBILITY);
   const [mapInstance, setMapInstance] = useState<any | null>(null);
 
   const setViewport = useCallback((updates: Partial<MapViewport>) => {
-    setViewportState(prev => ({ ...prev, ...updates }));
+    setViewportState((prev) => ({ ...prev, ...updates }));
   }, []);
 
   const setSelection = useCallback((updates: Partial<MapSelection>) => {
-    setSelectionState(prev => ({ ...prev, ...updates }));
+    setSelectionState((prev) => ({ ...prev, ...updates }));
   }, []);
 
-  const setLayerVisibility = useCallback((updates: Partial<MapLayerVisibility>) => {
-    setLayerVisibilityState(prev => ({ ...prev, ...updates }));
-  }, []);
+  const setLayerVisibility = useCallback(
+    (updates: Partial<MapLayerVisibility>) => {
+      setLayerVisibilityState((prev) => ({ ...prev, ...updates }));
+    },
+    [],
+  );
 
   const resetMap = useCallback(() => {
     setViewportState(DEFAULT_VIEWPORT);
@@ -108,7 +120,7 @@ export function MapStateProvider({ children }: { children: ReactNode }) {
 export function useMapState() {
   const context = useContext(MapStateContext);
   if (!context) {
-    throw new Error('useMapState must be used within a MapStateProvider');
+    throw new Error("useMapState must be used within a MapStateProvider");
   }
   return context;
 }

@@ -173,25 +173,6 @@ async def list_habitations(
 
 
 @router.get(
-    "/habitations/{habitation_id}",
-    response_model=HabitationResponse,
-    tags=["Habitations"],
-    summary="Get habitation by ID",
-)
-async def get_habitation(habitation_id: str):
-    """Get a single habitation by ID."""
-    habitation = get_habitation_by_id(habitation_id)
-
-    if not habitation:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Habitation {habitation_id} not found",
-        )
-
-    return habitation
-
-
-@router.get(
     "/habitations/high-vulnerability",
     response_model=List[HabitationResponse],
     tags=["Habitations"],
@@ -208,6 +189,25 @@ async def get_high_vuln_habitations(
 ):
     """Get high vulnerability habitations."""
     return get_high_vulnerability_habitations(threshold)
+
+
+@router.get(
+    "/habitations/{habitation_id}",
+    response_model=HabitationResponse,
+    tags=["Habitations"],
+    summary="Get habitation by ID",
+)
+async def get_habitation(habitation_id: str):
+    """Get a single habitation by ID."""
+    habitation = get_habitation_by_id(habitation_id)
+
+    if not habitation:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Habitation {habitation_id} not found",
+        )
+
+    return habitation
 
 
 # =============================================================================
@@ -325,6 +325,17 @@ async def list_routes(
 
 
 @router.get(
+    "/routes/feasible",
+    response_model=List[RouteResponse],
+    tags=["Routes"],
+    summary="Get feasible (open) routes",
+)
+async def get_feasible_routes():
+    """Get all feasible (open) routes."""
+    return get_open_routes()
+
+
+@router.get(
     "/routes/{route_id}",
     response_model=RouteResponse,
     tags=["Routes"],
@@ -341,17 +352,6 @@ async def get_route(route_id: str):
         )
 
     return route
-
-
-@router.get(
-    "/routes/feasible",
-    response_model=List[RouteResponse],
-    tags=["Routes"],
-    summary="Get feasible (open) routes",
-)
-async def get_feasible_routes():
-    """Get all feasible (open) routes."""
-    return get_open_routes()
 
 
 # =============================================================================

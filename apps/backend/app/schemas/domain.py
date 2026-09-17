@@ -7,7 +7,7 @@ Barpeta district, Assam - NOT official government data.
 """
 
 from typing import Optional, List, Dict, Any, Literal
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, computed_field
 from datetime import datetime
 from enum import Enum
 
@@ -358,10 +358,12 @@ class SiteResponse(BaseModel):
     road_access: bool
     geometry: Optional[Dict[str, Any]] = None
     
+    @computed_field
     @property
     def available_capacity(self) -> int:
         return self.max_capacity - self.current_allocation
     
+    @computed_field
     @property
     def utilization_pct(self) -> float:
         if self.max_capacity == 0:
@@ -383,12 +385,14 @@ class RouteResponse(BaseModel):
     last_assessment: Optional[str]
     geometry: Optional[Dict[str, Any]] = None
     
+    @computed_field
     @property
     def utilization_pct(self) -> float:
         if self.capacity_per_hour == 0:
             return 0.0
         return (self.current_load / self.capacity_per_hour) * 100
     
+    @computed_field
     @property
     def is_feasible(self) -> bool:
         return self.status == RouteStatus.OPEN

@@ -65,5 +65,12 @@ class Settings(BaseSettings):
     OPENWEATHER_API_KEY: Optional[str] = None
     IMD_API_KEY: Optional[str] = None
 
+    # SMS Provider
+    SMS_PROVIDER: str = "mock"
+    SMS_TWILIO_ACCOUNT_SID: Optional[str] = None
+    SMS_TWILIO_AUTH_TOKEN: Optional[str] = None
+    SMS_TWILIO_FROM_NUMBER: Optional[str] = None
+    SMS_DEMO_RECIPIENTS: str = "8090816077,9142339466,7690838817,9608159494,9899422059,8394825441"
+
 
 settings = Settings()

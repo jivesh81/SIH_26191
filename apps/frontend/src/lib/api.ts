@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:8000/api/v1';
+const API_BASE = "http://localhost:8000/api/v1";
 
 // =============================================================================
 // Types
@@ -23,10 +23,10 @@ export interface Habitation {
 }
 
 export enum RiskLevel {
-  RED_ZONE = 'RED_ZONE',
-  HIGH = 'HIGH',
-  MEDIUM = 'MEDIUM',
-  LOW = 'LOW',
+  RED_ZONE = "RED_ZONE",
+  HIGH = "HIGH",
+  MEDIUM = "MEDIUM",
+  LOW = "LOW",
 }
 
 export interface Site {
@@ -108,7 +108,7 @@ export interface InfeasibilityReason {
   constraint: string;
   description: string;
   affected_habitations: string[];
-  severity: 'warning' | 'critical';
+  severity: "warning" | "critical";
   recommendation: string;
 }
 
@@ -218,10 +218,7 @@ export interface EventLogResponse {
 
 export interface DisasterEvent {
   event_type:
-  | 'rainfall'
-  | 'bridge_collapse'
-  | 'capacity_reduction'
-  | 'combined';
+    "rainfall" | "bridge_collapse" | "capacity_reduction" | "combined";
 
   intensity?: number;
 
@@ -240,16 +237,14 @@ export interface DisasterEvent {
 }
 
 interface GeoJSONFeature<T = Record<string, any>> {
-  type: 'Feature';
+  type: "Feature";
   geometry?: any;
   properties?: T;
   id?: string | number;
 }
 
-interface GeoJSONFeatureCollection<
-  T = Record<string, any>
-> {
-  type: 'FeatureCollection';
+interface GeoJSONFeatureCollection<T = Record<string, any>> {
+  type: "FeatureCollection";
   features: Array<GeoJSONFeature<T>>;
 }
 
@@ -257,221 +252,123 @@ interface GeoJSONFeatureCollection<
 // Feature converters
 // =============================================================================
 
-function featureToHabitation(
-  feature: GeoJSONFeature
-): Habitation {
+function featureToHabitation(feature: GeoJSONFeature): Habitation {
   const p = feature.properties ?? {};
 
   return {
-    id: String(
-      feature.id ??
-      p.id ??
-      p.habitation_id ??
-      ''
-    ),
+    id: String(feature.id ?? p.id ?? p.habitation_id ?? ""),
 
     name: String(
       p.name ??
-      p.habitation_name ??
-      feature.id ??
-      p.habitation_id ??
-      'Unknown Habitation'
+        p.habitation_name ??
+        feature.id ??
+        p.habitation_id ??
+        "Unknown Habitation",
     ),
 
-    population: Number(
-      p.population ??
-      p.affected_population ??
-      0
-    ),
+    population: Number(p.population ?? p.affected_population ?? 0),
 
-    vulnerability_score: Number(
-      p.vulnerability_score ??
-      p.risk_score ??
-      0
-    ),
+    vulnerability_score: Number(p.vulnerability_score ?? p.risk_score ?? 0),
 
-    hazard_exposure:
-      Array.isArray(p.hazard_exposure)
-        ? p.hazard_exposure
-        : [],
+    hazard_exposure: Array.isArray(p.hazard_exposure) ? p.hazard_exposure : [],
 
-    nearest_shelter_id:
-      p.nearest_shelter_id ?? null,
+    nearest_shelter_id: p.nearest_shelter_id ?? null,
 
-    nearest_shelter_distance_m:
-      p.nearest_shelter_distance_m ?? null,
+    nearest_shelter_distance_m: p.nearest_shelter_distance_m ?? null,
 
-    evacuation_route_id:
-      p.evacuation_route_id ?? null,
+    evacuation_route_id: p.evacuation_route_id ?? null,
 
-    is_accessible:
-      p.is_accessible !== false,
+    is_accessible: p.is_accessible !== false,
 
-    priority_rank:
-      p.priority_rank ?? null,
+    priority_rank: p.priority_rank ?? null,
 
-    geometry:
-      feature.geometry,
+    geometry: feature.geometry,
 
-    properties:
-      p,
+    properties: p,
   };
 }
 
-function featureToSite(
-  feature: GeoJSONFeature
-): Site {
+function featureToSite(feature: GeoJSONFeature): Site {
   const p = (feature.properties ?? feature) as Record<string, any>;
 
   return {
-    id: String(
-      feature.id ??
-      p.id ??
-      p.site_id ??
-      ''
-    ),
+    id: String(feature.id ?? p.id ?? p.site_id ?? ""),
 
     name: String(
-      p.name ??
-      p.site_name ??
-      feature.id ??
-      p.site_id ??
-      'Unknown Site'
+      p.name ?? p.site_name ?? feature.id ?? p.site_id ?? "Unknown Site",
     ),
 
-    area_sqkm: Number(
-      p.area_sqkm ??
-      p.area ??
-      0
-    ),
+    area_sqkm: Number(p.area_sqkm ?? p.area ?? 0),
 
-    max_capacity: Number(
-      p.max_capacity ??
-      p.capacity ??
-      0
-    ),
+    max_capacity: Number(p.max_capacity ?? p.capacity ?? 0),
 
-    current_allocation: Number(
-      p.current_allocation ?? 0
-    ),
+    current_allocation: Number(p.current_allocation ?? 0),
 
-    suitability_score: Number(
-      p.suitability_score ?? 0
-    ),
+    suitability_score: Number(p.suitability_score ?? 0),
 
-    elevation_m: Number(
-      p.elevation_m ?? 0
-    ),
+    elevation_m: Number(p.elevation_m ?? 0),
 
-    flood_risk: String(
-      p.flood_risk ??
-      'unknown'
-    ),
+    flood_risk: String(p.flood_risk ?? "unknown"),
 
-    land_ownership: String(
-      p.land_ownership ??
-      'unknown'
-    ),
+    land_ownership: String(p.land_ownership ?? "unknown"),
 
-    infrastructure_ready:
-      p.infrastructure_ready !== false,
+    infrastructure_ready: p.infrastructure_ready !== false,
 
-    water_available:
-      p.water_available !== false,
+    water_available: p.water_available !== false,
 
-    power_available:
-      p.power_available !== false,
+    power_available: p.power_available !== false,
 
-    road_access:
-      p.road_access !== false,
+    road_access: p.road_access !== false,
 
     available_capacity: Number(
       p.available_capacity ??
-      p.effective_capacity ??
-      (Number(p.max_capacity ?? 0) - Number(p.current_allocation ?? 0))
+        p.effective_capacity ??
+        Number(p.max_capacity ?? 0) - Number(p.current_allocation ?? 0),
     ),
 
-    utilization_pct: Number(
-      p.utilization_pct ?? 0
-    ),
+    utilization_pct: Number(p.utilization_pct ?? 0),
 
-    geometry:
-      feature.geometry,
+    geometry: feature.geometry,
 
-    properties:
-      p,
+    properties: p,
   };
 }
 
-function featureToRoute(
-  feature: GeoJSONFeature
-): Route {
+function featureToRoute(feature: GeoJSONFeature): Route {
   const p = feature.properties ?? {};
 
   return {
-    id: String(
-      feature.id ??
-      p.id ??
-      p.route_id ??
-      ''
-    ),
+    id: String(feature.id ?? p.id ?? p.route_id ?? ""),
 
     name: String(
-      p.name ??
-      p.route_name ??
-      feature.id ??
-      p.route_id ??
-      'Unknown Route'
+      p.name ?? p.route_name ?? feature.id ?? p.route_id ?? "Unknown Route",
     ),
 
-    route_type: String(
-      p.route_type ??
-      'road'
-    ),
+    route_type: String(p.route_type ?? "road"),
 
-    length_km: Number(
-      p.length_km ?? 0
-    ),
+    length_km: Number(p.length_km ?? 0),
 
-    travel_time_min: Number(
-      p.travel_time_min ?? 0
-    ),
+    travel_time_min: Number(p.travel_time_min ?? 0),
 
-    capacity_per_hour: Number(
-      p.capacity_per_hour ?? 0
-    ),
+    capacity_per_hour: Number(p.capacity_per_hour ?? 0),
 
-    current_load: Number(
-      p.current_load ?? 0
-    ),
+    current_load: Number(p.current_load ?? 0),
 
-    status: String(
-      p.status ??
-      'open'
-    ),
+    status: String(p.status ?? "open"),
 
-    bridge_dependencies:
-      Array.isArray(
-        p.bridge_dependencies
-      )
-        ? p.bridge_dependencies
-        : [],
+    bridge_dependencies: Array.isArray(p.bridge_dependencies)
+      ? p.bridge_dependencies
+      : [],
 
-    last_assessment:
-      p.last_assessment ?? null,
+    last_assessment: p.last_assessment ?? null,
 
-    geometry:
-      feature.geometry,
+    geometry: feature.geometry,
 
-    is_feasible:
-      p.is_feasible !== false,
+    is_feasible: p.is_feasible !== false,
 
-    utilization_pct: Number(
-      p.utilization_pct ?? 0
-    ),
+    utilization_pct: Number(p.utilization_pct ?? 0),
 
-    properties:
-      p,
+    properties: p,
   };
 }
 
@@ -479,87 +376,56 @@ function featureToRoute(
 // Error formatting
 // =============================================================================
 
-function formatApiError(
-  status: number,
-  errorBody: any
-): string {
-  const detail =
-    errorBody?.detail;
+function formatApiError(status: number, errorBody: any): string {
+  const detail = errorBody?.detail;
 
   // FastAPI validation errors
   if (Array.isArray(detail)) {
-    const messages = detail.map(
-      (item: any) => {
-        if (
-          typeof item === 'string'
-        ) {
-          return item;
-        }
-
-        const message =
-          item?.msg ??
-          item?.message;
-
-        const location =
-          Array.isArray(item?.loc)
-            ? item.loc.join(' → ')
-            : '';
-
-        if (
-          message &&
-          location
-        ) {
-          return `${location}: ${message}`;
-        }
-
-        if (message) {
-          return message;
-        }
-
-        try {
-          return JSON.stringify(item);
-        } catch {
-          return String(item);
-        }
+    const messages = detail.map((item: any) => {
+      if (typeof item === "string") {
+        return item;
       }
-    );
 
-    return `HTTP ${status}: ${messages.join(
-      ' | '
-    )}`;
+      const message = item?.msg ?? item?.message;
+
+      const location = Array.isArray(item?.loc) ? item.loc.join(" → ") : "";
+
+      if (message && location) {
+        return `${location}: ${message}`;
+      }
+
+      if (message) {
+        return message;
+      }
+
+      try {
+        return JSON.stringify(item);
+      } catch {
+        return String(item);
+      }
+    });
+
+    return `HTTP ${status}: ${messages.join(" | ")}`;
   }
 
   // Object detail
-  if (
-    detail &&
-    typeof detail === 'object'
-  ) {
+  if (detail && typeof detail === "object") {
     try {
-      return `HTTP ${status}: ${JSON.stringify(
-        detail
-      )}`;
+      return `HTTP ${status}: ${JSON.stringify(detail)}`;
     } catch {
       return `HTTP ${status}`;
     }
   }
 
   // String detail
-  if (
-    typeof detail === 'string' &&
-    detail.trim()
-  ) {
+  if (typeof detail === "string" && detail.trim()) {
     return `HTTP ${status}: ${detail}`;
   }
 
   // Other JSON response
-  if (
-    errorBody &&
-    typeof errorBody === 'object'
-  ) {
+  if (errorBody && typeof errorBody === "object") {
     try {
-      return `HTTP ${status}: ${JSON.stringify(
-        errorBody
-      )}`;
+      return `HTTP ${status}: ${JSON.stringify(errorBody)}`;
     } catch {
       return `HTTP ${status}`;
     }
@@ -572,40 +438,27 @@ function formatApiError(
 // Generic fetch helper
 // =============================================================================
 
-async function fetchJson<T>(
-  url: string,
-  options?: RequestInit
-): Promise<T> {
-  const response = await fetch(
-    `${API_BASE}${url}`,
-    {
-      headers: {
-        'Content-Type':
-          'application/json',
+async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
+  const response = await fetch(`${API_BASE}${url}`, {
+    headers: {
+      "Content-Type": "application/json",
 
-        ...(options?.headers || {}),
-      },
+      ...(options?.headers || {}),
+    },
 
-      ...options,
-    }
-  );
+    ...options,
+  });
 
   if (!response.ok) {
     let errorBody: any = null;
 
     try {
-      errorBody =
-        await response.json();
+      errorBody = await response.json();
     } catch {
       errorBody = null;
     }
 
-    throw new Error(
-      formatApiError(
-        response.status,
-        errorBody
-      )
-    );
+    throw new Error(formatApiError(response.status, errorBody));
   }
 
   return response.json();
@@ -616,103 +469,54 @@ async function fetchJson<T>(
 // =============================================================================
 
 export const api = {
-
   // ===========================================================================
   // HABITATIONS
   // ===========================================================================
 
   habitations: {
+    list: async (params?: {
+      page?: number;
+      page_size?: number;
+      accessible_only?: boolean;
+      min_vulnerability?: number;
+    }) => {
+      const query = new URLSearchParams();
 
-    list: async (
-      params?: {
-        page?: number;
-        page_size?: number;
-        accessible_only?: boolean;
-        min_vulnerability?: number;
-      }
-    ) => {
-      const query =
-        new URLSearchParams();
-
-      if (
-        params?.page !== undefined
-      ) {
-        query.set(
-          'page',
-          String(params.page)
-        );
+      if (params?.page !== undefined) {
+        query.set("page", String(params.page));
       }
 
-      if (
-        params?.page_size !== undefined
-      ) {
-        query.set(
-          'page_size',
-          String(params.page_size)
-        );
+      if (params?.page_size !== undefined) {
+        query.set("page_size", String(params.page_size));
       }
 
-      if (
-        params?.accessible_only !==
-        undefined
-      ) {
-        query.set(
-          'accessible_only',
-          String(
-            params.accessible_only
-          )
-        );
+      if (params?.accessible_only !== undefined) {
+        query.set("accessible_only", String(params.accessible_only));
       }
 
-      if (
-        params?.min_vulnerability !==
-        undefined
-      ) {
-        query.set(
-          'min_vulnerability',
-          String(
-            params.min_vulnerability
-          )
-        );
+      if (params?.min_vulnerability !== undefined) {
+        query.set("min_vulnerability", String(params.min_vulnerability));
       }
 
-      const data =
-        await fetchJson<{
-          habitations: any[];
-          total: number;
-          page: number;
-          page_size: number;
-        }>(
-          `/habitations${query.toString()
-            ? `?${query.toString()}`
-            : ''
-          }`
-        );
+      const data = await fetchJson<{
+        habitations: any[];
+        total: number;
+        page: number;
+        page_size: number;
+      }>(`/habitations${query.toString() ? `?${query.toString()}` : ""}`);
 
-      const habitations =
-        data.habitations.map(
-          featureToHabitation
-        );
+      const habitations = data.habitations.map(featureToHabitation);
 
       return {
         habitations,
-        features:
-          data.habitations,
-        total:
-          data.total,
-        page:
-          data.page,
-        page_size:
-          data.page_size,
+        features: data.habitations,
+        total: data.total,
+        page: data.page,
+        page_size: data.page_size,
       };
     },
 
-    get: (
-      id: string
-    ) =>
-      fetchJson<Habitation>(
-        `/habitations/${id}`
-      ),
+    get: (id: string) => fetchJson<Habitation>(`/habitations/${id}`),
   },
 
   // ===========================================================================
@@ -720,84 +524,44 @@ export const api = {
   // ===========================================================================
 
   sites: {
+    list: async (params?: {
+      page?: number;
+      page_size?: number;
+      available_only?: boolean;
+    }) => {
+      const query = new URLSearchParams();
 
-    list: async (
-      params?: {
-        page?: number;
-        page_size?: number;
-        available_only?: boolean;
-      }
-    ) => {
-      const query =
-        new URLSearchParams();
-
-      if (
-        params?.page !== undefined
-      ) {
-        query.set(
-          'page',
-          String(params.page)
-        );
+      if (params?.page !== undefined) {
+        query.set("page", String(params.page));
       }
 
-      if (
-        params?.page_size !== undefined
-      ) {
-        query.set(
-          'page_size',
-          String(params.page_size)
-        );
+      if (params?.page_size !== undefined) {
+        query.set("page_size", String(params.page_size));
       }
 
-      if (
-        params?.available_only !==
-        undefined
-      ) {
-        query.set(
-          'available_only',
-          String(
-            params.available_only
-          )
-        );
+      if (params?.available_only !== undefined) {
+        query.set("available_only", String(params.available_only));
       }
 
-      const data =
-        await fetchJson<{
-          sites: any[];
-          total: number;
-          page: number;
-          page_size: number;
-        }>(
-          `/sites${query.toString()
-            ? `?${query.toString()}`
-            : ''
-          }`
-        );
+      const data = await fetchJson<{
+        sites: any[];
+        total: number;
+        page: number;
+        page_size: number;
+      }>(`/sites${query.toString() ? `?${query.toString()}` : ""}`);
 
-      const sites =
-        data.sites.map(
-          featureToSite
-        );
+      const sites = data.sites.map(featureToSite);
 
       return {
         sites,
-        features:
-          data.sites,
-        total:
-          data.total,
-        page:
-          data.page,
-        page_size:
-          data.page_size,
+        features: data.sites,
+        total: data.total,
+        page: data.page,
+        page_size: data.page_size,
       };
     },
 
-    get: (
-      id: string
-    ) =>
-      fetchJson<Site>(
-        `/sites/${id}`
-      ),
+    get: (id: string) => fetchJson<Site>(`/sites/${id}`),
   },
 
   // ===========================================================================
@@ -805,107 +569,59 @@ export const api = {
   // ===========================================================================
 
   routes: {
+    list: async (params?: {
+      page?: number;
+      page_size?: number;
+      open_only?: boolean;
+      route_type?: string;
+    }) => {
+      const query = new URLSearchParams();
 
-    list: async (
-      params?: {
-        page?: number;
-        page_size?: number;
-        open_only?: boolean;
-        route_type?: string;
-      }
-    ) => {
-      const query =
-        new URLSearchParams();
-
-      if (
-        params?.page !== undefined
-      ) {
-        query.set(
-          'page',
-          String(params.page)
-        );
+      if (params?.page !== undefined) {
+        query.set("page", String(params.page));
       }
 
-      if (
-        params?.page_size !== undefined
-      ) {
-        query.set(
-          'page_size',
-          String(params.page_size)
-        );
+      if (params?.page_size !== undefined) {
+        query.set("page_size", String(params.page_size));
       }
 
-      if (
-        params?.open_only !==
-        undefined
-      ) {
-        query.set(
-          'open_only',
-          String(params.open_only)
-        );
+      if (params?.open_only !== undefined) {
+        query.set("open_only", String(params.open_only));
       }
 
-      if (
-        params?.route_type
-      ) {
-        query.set(
-          'route_type',
-          params.route_type
-        );
+      if (params?.route_type) {
+        query.set("route_type", params.route_type);
       }
 
-      const data =
-        await fetchJson<{
-          routes: any[];
-          total: number;
-          page: number;
-          page_size: number;
-        }>(
-          `/routes${query.toString()
-            ? `?${query.toString()}`
-            : ''
-          }`
-        );
+      const data = await fetchJson<{
+        routes: any[];
+        total: number;
+        page: number;
+        page_size: number;
+      }>(`/routes${query.toString() ? `?${query.toString()}` : ""}`);
 
-      const routes =
-        data.routes.map(
-          featureToRoute
-        );
+      const routes = data.routes.map(featureToRoute);
 
       return {
         routes,
-        features:
-          data.routes,
-        total:
-          data.total,
-        page:
-          data.page,
-        page_size:
-          data.page_size,
+        features: data.routes,
+        total: data.total,
+        page: data.page,
+        page_size: data.page_size,
       };
     },
 
-    get: (
-      id: string
-    ) =>
-      fetchJson<Route>(
-        `/routes/${id}`
-      ),
+    get: (id: string) => fetchJson<Route>(`/routes/${id}`),
 
     feasible: async () => {
-      const data =
-        await fetchJson<{
-          routes: any[];
-          total: number;
-          page: number;
-          page_size: number;
-        }>(
-          `/routes?page=1&page_size=200&open_only=true`
-        );
+      const data = await fetchJson<{
+        routes: any[];
+        total: number;
+        page: number;
+        page_size: number;
+      }>(`/routes?page=1&page_size=200&open_only=true`);
 
-      return data.routes.map(
-        featureToRoute
-      );
+      return data.routes.map(featureToRoute);
     },
   },
 
@@ -914,65 +630,43 @@ export const api = {
   // ===========================================================================
 
   feasibility: {
-
     all: async () => {
-      const data =
-        await fetchJson<{
-          routes: any[];
-          total: number;
-          page: number;
-          page_size: number;
-        }>(
-          `/routes?page=1&page_size=200&open_only=false`
-        );
+      const data = await fetchJson<{
+        routes: any[];
+        total: number;
+        page: number;
+        page_size: number;
+      }>(`/routes?page=1&page_size=200&open_only=false`);
 
-      const routes =
-        data.routes.map(
-          featureToRoute
-        );
+      const routes = data.routes.map(featureToRoute);
 
       return {
         routes,
-        total:
-          routes.length,
+        total: routes.length,
 
-        feasible_count:
-          routes.filter(
-            route =>
-              route.is_feasible
-          ).length,
+        feasible_count: routes.filter((route) => route.is_feasible).length,
 
-        infeasible_count:
-          routes.filter(
-            route =>
-              !route.is_feasible
-          ).length,
+        infeasible_count: routes.filter((route) => !route.is_feasible).length,
       };
     },
 
-    fromHabitation: async (
-      habitationId: string
-    ) => {
+    fromHabitation: async (habitationId: string) => {
       return {
         routes: [],
         total: 0,
         feasible_count: 0,
         infeasible_count: 0,
-        habitation_id:
-          habitationId,
+        habitation_id: habitationId,
       };
     },
 
-    toSite: async (
-      siteId: string
-    ) => {
+    toSite: async (siteId: string) => {
       return {
         routes: [],
         total: 0,
         feasible_count: 0,
         infeasible_count: 0,
-        site_id:
-          siteId,
+        site_id: siteId,
       };
     },
   },
@@ -982,22 +676,15 @@ export const api = {
   // ===========================================================================
 
   optimization: {
-
-    run: (
-      body: {
-        habitation_ids?: string[];
-        site_ids?: string[];
-        time_limit_seconds?: number;
-      }
-    ) =>
-      fetchJson<OptimizationResponse>(
-        `/optimization/relocation`,
-        {
-          method: 'POST',
-          body:
-            JSON.stringify(body),
-        }
-      ),
+    run: (body: {
+      habitation_ids?: string[];
+      site_ids?: string[];
+      time_limit_seconds?: number;
+    }) =>
+      fetchJson<OptimizationResponse>(`/optimization/relocation`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
   },
 
   // ===========================================================================
@@ -1005,53 +692,34 @@ export const api = {
   // ===========================================================================
 
   plan: {
-
     active: async () => {
-      const response =
-        await fetchJson<any>(
-          `/plan/active`
-        );
+      const response = await fetchJson<any>(`/plan/active`);
 
-      const rawPlan =
-        response?.plan ??
-        response;
+      const rawPlan = response?.plan ?? response;
 
-      const allVersions =
-        Array.isArray(
-          response?.all_versions
-        )
-          ? response.all_versions
-          : [];
+      const allVersions = Array.isArray(response?.all_versions)
+        ? response.all_versions
+        : [];
 
       return {
-        plan:
-          rawPlan,
+        plan: rawPlan,
 
-        all_versions:
-          allVersions,
+        all_versions: allVersions,
       };
     },
 
-    approve: async (
-      planId?: string
-    ) => {
-      const options:
-        RequestInit = {
-        method: 'POST',
+    approve: async (planId?: string) => {
+      const options: RequestInit = {
+        method: "POST",
       };
 
       if (planId) {
-        options.body =
-          JSON.stringify({
-            plan_id:
-              planId,
-          });
+        options.body = JSON.stringify({
+          plan_id: planId,
+        });
       }
 
-      return fetchJson<any>(
-        `/plan/approve`,
-        options
-      );
+      return fetchJson<any>(`/plan/approve`, options);
     },
   },
 
@@ -1060,28 +728,18 @@ export const api = {
   // ===========================================================================
 
   events: {
-
-    trigger: async (
-      event: DisasterEvent
-    ) => {
+    trigger: async (event: DisasterEvent) => {
       /*
        * Keep this console output temporarily.
        * It lets us verify the exact payload
        * being sent from the dashboard.
        */
-      console.log(
-        '[Aapda Setu] Disaster event:',
-        event
-      );
+      console.log("[Aapda Setu] Disaster event:", event);
 
-      return fetchJson<EventTriggerResponse>(
-        `/events/trigger`,
-        {
-          method: 'POST',
-          body:
-            JSON.stringify(event),
-        }
-      );
+      return fetchJson<EventTriggerResponse>(`/events/trigger`, {
+        method: "POST",
+        body: JSON.stringify(event),
+      });
     },
 
     /*
@@ -1114,84 +772,60 @@ export interface ReadinessResponse {
 }
 
 export async function getHealth() {
-  return fetchJson<HealthResponse>('/health');
+  return fetchJson<HealthResponse>("/health");
 }
 
 export async function getReadiness() {
-  return fetchJson<ReadinessResponse>('/ready');
+  return fetchJson<ReadinessResponse>("/ready");
 }
 
 export async function getApiHealth() {
-  return fetchJson<HealthResponse>('/api/v1/health');
+  return fetchJson<HealthResponse>("/health");
 }
 
 // =============================================================================
 // Convenience functions
 // =============================================================================
 
-export async function runOptimization(
-  body: {
-    habitation_ids?: string[];
-    site_ids?: string[];
-    time_limit_seconds?: number;
-  }
-) {
-  return api.optimization.run(
-    body
-  );
+export async function runOptimization(body: {
+  habitation_ids?: string[];
+  site_ids?: string[];
+  time_limit_seconds?: number;
+}) {
+  return api.optimization.run(body);
 }
 
-export async function triggerEvent(
-  event: DisasterEvent
-) {
-  return api.events.trigger(
-    event
-  );
+export async function triggerEvent(event: DisasterEvent) {
+  return api.events.trigger(event);
 }
 
 export async function getActivePlan() {
   return api.plan.active();
 }
 
-export async function approvePlan(
-  planId?: string
-) {
-  return api.plan.approve(
-    planId
-  );
+export async function approvePlan(planId?: string) {
+  return api.plan.approve(planId);
 }
 
 export async function getEventLog() {
   return api.events.log();
 }
 
-export async function getHabitations(
-  params?: {
-    accessible_only?: boolean;
-  }
-) {
+export async function getHabitations(params?: { accessible_only?: boolean }) {
   return api.habitations.list({
     ...params,
     page_size: 100,
   });
 }
 
-export async function getSites(
-  params?: {
-    available_only?: boolean;
-  }
-) {
+export async function getSites(params?: { available_only?: boolean }) {
   return api.sites.list({
     ...params,
     page_size: 100,
   });
 }
 
-export async function getRoutes(
-  params?: {
-    open_only?: boolean;
-  }
-) {
+export async function getRoutes(params?: { open_only?: boolean }) {
   return api.routes.list({
     ...params,
     page_size: 100,
@@ -1227,22 +861,22 @@ export interface RouteFeasibilityListResponse {
 
 export async function checkRouteFeasibility(
   habitationId: string,
-  siteId: string
+  siteId: string,
 ) {
   return fetchJson<RouteFeasibilityResponse>(
-    `/intelligence/route/feasibility/habitation/${habitationId}?site_id=${siteId}`
+    `/intelligence/route/feasibility/habitation/${habitationId}?site_id=${siteId}`,
   );
 }
 
 export async function checkAllRoutesFromHabitation(habitationId: string) {
   return fetchJson<RouteFeasibilityListResponse>(
-    `/intelligence/route/feasibility/habitation/${habitationId}`
+    `/intelligence/route/feasibility/habitation/${habitationId}`,
   );
 }
 
 export async function checkAllRoutesToSite(siteId: string) {
   return fetchJson<RouteFeasibilityListResponse>(
-    `/intelligence/route/feasibility/site/${siteId}`
+    `/intelligence/route/feasibility/site/${siteId}`,
   );
 }
 
@@ -1256,10 +890,7 @@ export async function getAllRouteFeasibility() {
 
 export interface PredictedRiskRequest {
   habitation_id: string;
-  weather?: Record<
-    string,
-    number
-  >;
+  weather?: Record<string, number>;
 }
 
 export interface PredictedRiskResponse {
@@ -1268,16 +899,14 @@ export interface PredictedRiskResponse {
   deterministic_risk_level: string;
   ml_risk_level: string;
   final_risk_level: string;
-  ml_probabilities:
-  Record<string, number>;
+  ml_probabilities: Record<string, number>;
   explanation: string;
   data_source: string;
   ml_model: string;
 }
 
 export interface PredictedRiskListResponse {
-  predictions:
-  PredictedRiskResponse[];
+  predictions: PredictedRiskResponse[];
   total: number;
 }
 
@@ -1311,52 +940,35 @@ export interface RiskAssessmentListResponse {
 }
 
 export async function getRiskAssessments() {
-  return fetchJson<RiskAssessmentListResponse>('/intelligence/risk');
+  return fetchJson<RiskAssessmentListResponse>("/intelligence/risk");
 }
 
 export async function getRiskAssessment(habitationId: string) {
-  return fetchJson<RiskAssessmentResponse>(`/intelligence/risk/${habitationId}`);
-}
-
-export async function getRedZoneHabitations() {
-  return fetchJson<RiskAssessmentResponse[]>('/intelligence/risk/red-zone');
-}
-
-export async function predictRisk(
-  request: PredictedRiskRequest
-) {
-  return fetchJson<PredictedRiskResponse>(
-    `/intelligence/risk/predict`,
-    {
-      method: 'POST',
-      body:
-        JSON.stringify(request),
-    }
+  return fetchJson<RiskAssessmentResponse>(
+    `/intelligence/risk/${habitationId}`,
   );
 }
 
-export async function predictRiskBatch(
-  weather?: Record<
-    string,
-    number
-  >
-) {
-  const query =
-    weather
-      ? `?${new URLSearchParams(
-        Object.entries(
-          weather
-        ).map(
-          ([key, value]) => [
-            key,
-            String(value),
-          ]
-        )
+export async function getRedZoneHabitations() {
+  return fetchJson<RiskAssessmentResponse[]>("/intelligence/risk/red-zone");
+}
+
+export async function predictRisk(request: PredictedRiskRequest) {
+  return fetchJson<PredictedRiskResponse>(`/intelligence/risk/predict`, {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
+}
+
+export async function predictRiskBatch(weather?: Record<string, number>) {
+  const query = weather
+    ? `?${new URLSearchParams(
+        Object.entries(weather).map(([key, value]) => [key, String(value)]),
       ).toString()}`
-      : '';
+    : "";
 
   return fetchJson<PredictedRiskListResponse>(
-    `/intelligence/risk/predict/batch${query}`
+    `/intelligence/risk/predict/batch${query}`,
   );
 }
 
@@ -1376,10 +988,7 @@ export interface SMSLogEntry {
   created_at: string;
   sent_at?: string;
   delivered_at?: string;
-  metadata?: Record<
-    string,
-    any
-  >;
+  metadata?: Record<string, any>;
 }
 
 export interface SMSLogResponse {
@@ -1387,27 +996,17 @@ export interface SMSLogResponse {
   total: number;
 }
 
-export async function getSMSLog(
-  planId?: string,
-  limit: number = 100
-) {
-  const query =
-    new URLSearchParams();
+export async function getSMSLog(planId?: string, limit: number = 100) {
+  const query = new URLSearchParams();
 
   if (planId) {
-    query.set(
-      'plan_id',
-      planId
-    );
+    query.set("plan_id", planId);
   }
 
-  query.set(
-    'limit',
-    String(limit)
-  );
+  query.set("limit", String(limit));
 
   return fetchJson<SMSLogResponse>(
-    `/notifications/sms-log?${query.toString()}`
+    `/notifications/sms-log?${query.toString()}`,
   );
 }
 
@@ -1437,15 +1036,9 @@ export interface PlanApprovalResponse {
   error?: string;
 }
 
-export async function approvePlanAndNotify(
-  request: PlanApprovalRequest
-) {
-  return fetchJson<PlanApprovalResponse>(
-    `/plan/approve`,
-    {
-      method: 'POST',
-      body:
-        JSON.stringify(request),
-    }
-  );
+export async function approvePlanAndNotify(request: PlanApprovalRequest) {
+  return fetchJson<PlanApprovalResponse>(`/plan/approve`, {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
 }

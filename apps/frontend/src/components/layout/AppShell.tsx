@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { ReactNode } from 'react';
-import { CollapsibleSidebar } from '@/components/ui/CollapsibleSidebar';
-import { PersistentLiveMapPanel } from '@/components/map/PersistentLiveMap';
-import { CommandCenterHeader } from '@/components/ui/CommandCenterHeader';
-import { EmergencyStatusBanner } from '@/components/ui/EmergencyStatusBanner';
-import { useSidebar } from '@/context/SidebarContext';
+import { ReactNode } from "react";
+import { CollapsibleSidebar } from "@/components/ui/CollapsibleSidebar";
+import { PersistentLiveMapPanel } from "@/components/map/PersistentLiveMap";
+import { CommandCenterHeader } from "@/components/ui/CommandCenterHeader";
+import { EmergencyStatusBanner } from "@/components/ui/EmergencyStatusBanner";
+import { useSidebar } from "@/context/SidebarContext";
 
 interface AppShellProps {
   children: ReactNode;
@@ -18,7 +18,10 @@ export function AppShell({ children }: AppShellProps) {
     <div className="min-h-screen bg-slate-50 flex">
       <CollapsibleSidebar />
 
-      <div className="flex-1 flex flex-col min-w-0 transition-all duration-300" style={{ marginLeft: isOpen ? '288px' : '64px' }}>
+      <div
+        className="flex-1 flex flex-col min-w-0 transition-all duration-300"
+        style={{ marginLeft: isOpen ? "288px" : "64px" }}
+      >
         <CommandCenterHeader />
         <EmergencyStatusBanner />
 

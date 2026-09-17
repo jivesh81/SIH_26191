@@ -13,10 +13,35 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 
+from app.core.config import settings
+from app.services.sms_providers import create_sms_provider
 from app.schemas.domain import OptimizationStatus
 
 
 LOG_PATH = Path(__file__).parent.parent / "ml" / "sms_log.json"
+
+
+def _get_demo_recipients() -> List[str]:
+    """Get demo recipients from settings (dynamic for testing)."""
+    from app.core.config import settings
+    recipients_str = settings.SMS_DEMO_RECIPIENTS
+    if not recipients_str:
+        return []
+    recipients = []
+    for r in recipients_str.split(","):
+        r = r.strip()
+        if r and not r.startswith("+"):
+            r = "+91" + r
+        recipients.append(r)
+    return recipients
+
+
+def _get_recipient_mode() -> str:
+    """Determine recipient counting mode based on demo recipients count."""
+    recipients = _get_demo_recipients()
+    # If only 1 demo recipient configured, use legacy per-assignment mode
+    # If multiple demo recipients configured, use new per-recipient mode
+    return "assignment" if len(recipients) <= 1 else "demo"
 
 
 @dataclass
@@ -36,12 +61,16 @@ class SMSLogEntry:
     metadata: Optional[Dict[str, Any]] = None
 
 
-class MockSMSService:
-    """Mock SMS service for demo purposes."""
+class SMSService:
+    """SMS service that uses the configured provider and demo recipients."""
 
     def __init__(self):
         self._log: List[SMSLogEntry] = []
         self._load_log()
+
+    def _get_provider(self):
+        """Get the current SMS provider (dynamic for testing)."""
+        return create_sms_provider()
 
     def _load_log(self):
         """Load existing log from JSON file."""
@@ -68,7 +97,7 @@ class MockSMSService:
         if len(site_names) > 3:
             sites_str += f" and {len(site_names) - 3} more"
         return (
-            f"AAPDA SETU ALERT: Relocation Plan v{plan_version} APPROVED. "
+            f"AAPDA SETU DEMO ALERT: Relocation Plan v{plan_version} APPROVED. "
             f"{assigned_pop:,} people assigned to {sites_str}. "
             f"Evacuation teams activated. Follow official instructions."
         )
@@ -92,18 +121,41 @@ class MockSMSService:
         Send SMS notification after human approval of relocation plan.
 
         This is the ONLY authorized SMS dispatch path per SIH requirements.
+        Sends to all configured demo recipients (or per-assignment in legacy mode).
         """
+        message_content = self._generate_plan_approved_message(
+            plan_version, total_population, site_names
+        )
+
+        mode = _get_recipient_mode()
+        if mode == "demo":
+            recipients = _get_demo_recipients()
+            recipient_count = len(recipients)
+        else:
+            # Legacy mode: one SMS per assignment
+            recipients = _get_demo_recipients()
+            recipient_count = len(assignments)
+
+        provider = self._get_provider()
+        provider_message_ids = []
+        for recipient in recipients:
+            result = provider.send_sms(
+                to_number=recipient,
+                from_number=settings.SMS_TWILIO_FROM_NUMBER or "+919999999999",
+                body=message_content,
+            )
+            if result.message_id:
+                provider_message_ids.append(result.message_id)
+
         entry = SMSLogEntry(
             id=str(uuid.uuid4())[:8],
             plan_id=plan_id,
             plan_version=plan_version,
             message_type="plan_approved",
-            recipient_count=len(assignments),  # One per habitation contact
+            recipient_count=recipient_count,
             message_template="plan_approved_v1",
-            message_content=self._generate_plan_approved_message(
-                plan_version, total_population, site_names
-            ),
-            status="sent",  # Mock: instantly "sent"
+            message_content=message_content,
+            status="sent",
             created_at=datetime.utcnow().isoformat() + "Z",
             sent_at=datetime.utcnow().isoformat() + "Z",
             delivered_at=datetime.utcnow().isoformat() + "Z",
@@ -112,6 +164,8 @@ class MockSMSService:
                 "site_ids": list(set(a.get("assigned_site_id") for a in assignments)),
                 "data_source": "synthetic_demo",
                 "note": "Mock SMS - no actual telecom integration",
+                "provider": provider.get_provider_name(),
+                "provider_message_ids": provider_message_ids,
             },
         )
 
@@ -125,21 +179,43 @@ class MockSMSService:
         plan_version: int,
         assignments: List[Dict],
     ) -> List[SMSLogEntry]:
-        """Send per-habitation evacuation order SMS (mock)."""
+        """Send per-habitation evacuation order SMS (to demo recipients or per-assignment in legacy mode)."""
         entries = []
         for a in assignments:
+            message_content = self._generate_evacuation_message(
+                a.get("habitation_name", "Unknown"),
+                a.get("assigned_site_name", "Unknown"),
+                a.get("route_id", "designated route"),
+            )
+
+            mode = _get_recipient_mode()
+            if mode == "demo":
+                recipients = _get_demo_recipients()
+                recipient_count = len(recipients)
+            else:
+                # Legacy mode: one SMS per assignment (to the single demo recipient)
+                recipients = _get_demo_recipients()
+                recipient_count = 1
+
+            provider = self._get_provider()
+            provider_message_ids = []
+            for recipient in recipients:
+                result = provider.send_sms(
+                    to_number=recipient,
+                    from_number=settings.SMS_TWILIO_FROM_NUMBER or "+919999999999",
+                    body=message_content,
+                )
+                if result.message_id:
+                    provider_message_ids.append(result.message_id)
+
             entry = SMSLogEntry(
                 id=str(uuid.uuid4())[:8],
                 plan_id=plan_id,
                 plan_version=plan_version,
                 message_type="evacuation_order",
-                recipient_count=1,
+                recipient_count=recipient_count,
                 message_template="evacuation_order_v1",
-                message_content=self._generate_evacuation_message(
-                    a.get("habitation_name", "Unknown"),
-                    a.get("assigned_site_name", "Unknown"),
-                    a.get("route_id", "designated route"),
-                ),
+                message_content=message_content,
                 status="sent",
                 created_at=datetime.utcnow().isoformat() + "Z",
                 sent_at=datetime.utcnow().isoformat() + "Z",
@@ -148,6 +224,8 @@ class MockSMSService:
                     "habitation_id": a.get("habitation_id"),
                     "site_id": a.get("assigned_site_id"),
                     "data_source": "synthetic_demo",
+                    "provider": provider.get_provider_name(),
+                    "provider_message_ids": provider_message_ids,
                 },
             )
             self._log.append(entry)
@@ -173,13 +251,17 @@ class MockSMSService:
         self._save_log()
 
 
+# Backward compatibility
+MockSMSService = SMSService
+
+
 # Global instance
-_sms_service: Optional[MockSMSService] = None
+_sms_service: Optional[SMSService] = None
 
 
-def get_sms_service() -> MockSMSService:
+def get_sms_service() -> SMSService:
     """Get or create the global SMS service instance."""
     global _sms_service
     if _sms_service is None:
-        _sms_service = MockSMSService()
+        _sms_service = SMSService()
     return _sms_service
