@@ -197,11 +197,11 @@ class TestSMSServiceIntegration:
         assert entry.plan_id == "test_plan_001"
         assert entry.plan_version == 1
         assert entry.message_type == "plan_approved"
-        assert entry.recipient_count == 6  # 6 configured demo recipients
+        assert entry.recipient_count == 2  # 2 assignments approved
         assert entry.status == "sent"
         assert "AAPDA SETU DEMO ALERT" in entry.message_content
         assert entry.metadata["provider"] == "mock"
-        assert len(entry.metadata["provider_message_ids"]) == 6
+        assert len(entry.metadata["provider_message_ids"]) == 2  # 1 SMS per assignment
 
     def test_mock_provider_sends_evacuation_orders(self):
         """Mock provider successfully sends evacuation order SMS."""

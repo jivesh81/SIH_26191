@@ -121,26 +121,31 @@ class SMSService:
         Send SMS notification after human approval of relocation plan.
 
         This is the ONLY authorized SMS dispatch path per SIH requirements.
-        Sends to all configured demo recipients (or per-assignment in legacy mode).
+        Sends ONE SMS per assignment (not per demo recipient).
         """
-        message_content = self._generate_plan_approved_message(
-            plan_version, total_population, site_names
-        )
-
-        mode = _get_recipient_mode()
-        if mode == "demo":
-            recipients = _get_demo_recipients()
-            recipient_count = len(recipients)
-        else:
-            # Legacy mode: one SMS per assignment
-            recipients = _get_demo_recipients()
-            recipient_count = len(assignments)
-
+        recipients = _get_demo_recipients()
         provider = self._get_provider()
+
+        # Send one SMS per assignment
         provider_message_ids = []
-        for recipient in recipients:
+        for assignment in assignments:
+            # Generate message specific to this assignment
+            habitation_name = assignment.get("habitation_name", "Unknown")
+            assigned_site_name = assignment.get("assigned_site_name", "Unknown")
+            message_content = (
+                f"AAPDA SETU DEMO ALERT: Relocation Plan v{plan_version} APPROVED. "
+                f"{habitation_name} -> {assigned_site_name}. "
+                f"Evacuation teams activated. Follow official instructions."
+            )
+
+            # Send to first demo recipient (or configured primary contact)
+            if recipients:
+                to_number = recipients[0]
+            else:
+                to_number = settings.SMS_TWILIO_FROM_NUMBER or "+919999999999"
+
             result = provider.send_sms(
-                to_number=recipient,
+                to_number=to_number,
                 from_number=settings.SMS_TWILIO_FROM_NUMBER or "+919999999999",
                 body=message_content,
             )
@@ -152,9 +157,11 @@ class SMSService:
             plan_id=plan_id,
             plan_version=plan_version,
             message_type="plan_approved",
-            recipient_count=recipient_count,
+            recipient_count=len(assignments),
             message_template="plan_approved_v1",
-            message_content=message_content,
+            message_content=self._generate_plan_approved_message(
+                plan_version, total_population, site_names
+            ),
             status="sent",
             created_at=datetime.utcnow().isoformat() + "Z",
             sent_at=datetime.utcnow().isoformat() + "Z",
