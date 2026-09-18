@@ -4,14 +4,13 @@ import { useEventLog } from "@/hooks/useApi";
 import { useActivePlan } from "@/hooks/useApi";
 import { useSMSLog } from "@/hooks/useApi";
 import { useState, useMemo } from "react";
+import { Card, Badge, DataTable, Button } from "@/components/ui";
 
 export function AuditActivityView() {
   const { data: eventLog, isLoading: eventLoading } = useEventLog();
   const { data: activePlan } = useActivePlan();
   const { data: smsLog, isLoading: smsLoading } = useSMSLog();
-  const [activeTab, setActiveTab] = useState<"events" | "plans" | "sms">(
-    "events",
-  );
+  const [activeTab, setActiveTab] = useState<"events" | "plans" | "sms">("events");
 
   const events = eventLog?.events ?? [];
   const plan = activePlan?.plan ?? activePlan;
@@ -31,602 +30,86 @@ export function AuditActivityView() {
   }> = (activePlan as any)?.all_versions ?? [];
   const smsEntries = smsLog?.entries ?? [];
 
-  const filteredEvents = useMemo(() => {
-    return events.slice(0, 50);
-  }, [events]);
+  const filteredEvents = useMemo(() => events.slice(0, 50), [events]);
+
+  const eventColumns = [
+    { key: "type", header: "Event", accessor: (e: any) => <span className="font-medium text-slate-900 capitalize">{String(e.event_type ?? "event").replace(/_/g, " ")}</span> },
+    { key: "time", header: "Time", accessor: (e: any) => e.timestamp ? new Date(e.timestamp).toLocaleString() : "—", width: "180px", monospace: true },
+    { key: "bridge", header: "Bridge", accessor: (e: any) => e.metadata?.bridge_id ?? "—", width: "160px" },
+    { key: "shelters", header: "Shelters", accessor: (e: any) => Array.isArray(e.metadata?.shelter_ids) ? e.metadata.shelter_ids.join(", ") : e.metadata?.shelter_ids ?? "—" },
+    { key: "reduction", header: "Reduction", accessor: (e: any) => e.metadata?.reduction_pct ? `${e.metadata.reduction_pct}%` : "—", width: "100px", align: "center" as const },
+    { key: "result", header: "Result", accessor: (e: any) => e.result?.plan_invalidated ? <Badge variant="danger" size="sm">Plan Invalidated</Badge> : <Badge variant="success" size="sm">Processed</Badge>, align: "center" as const, width: "140px" },
+    { key: "newPlan", header: "New Plan", accessor: (e: any) => e.result?.new_plan ? <Badge variant="info" size="sm">v{e.result.new_plan.version}</Badge> : <span className="text-slate-400">—</span>, align: "center" as const, width: "100px" },
+  ];
+
+  const planColumns = [
+    { key: "version", header: "Version", accessor: (v: any) => <span className="font-mono font-bold text-blue-600">v{v.version}</span>, width: "100px", align: "center" as const },
+    { key: "status", header: "Status", accessor: (v: any) => { const variant = v.status === "active" ? "success" : v.status === "invalid" ? "danger" : "neutral"; return <Badge variant={variant} size="sm" dot dotColor={v.status === "active" ? "bg-green-500" : v.status === "invalid" ? "bg-red-500" : "bg-slate-400"}> {v.status}</Badge>; }, align: "center" as const, width: "120px" },
+    { key: "assigned", header: "Assigned", accessor: (v: any) => v.total_assigned_population?.toLocaleString() ?? 0, align: "right" as const, width: "120px", monospace: true },
+    { key: "unmet", header: "Unmet", accessor: (v: any) => v.total_unmet_population?.toLocaleString() ?? 0, align: "right" as const, width: "120px", monospace: true },
+    { key: "optStatus", header: "Opt. Status", accessor: (v: any) => v.optimization_status, align: "center" as const, width: "140px" },
+    { key: "created", header: "Created", accessor: (v: any) => new Date(v.created_at).toLocaleString(), width: "180px", monospace: true },
+    { key: "invalidated", header: "Invalidated", accessor: (v: any) => v.invalidated_at ? new Date(v.invalidated_at).toLocaleString() : "—", width: "180px", monospace: true },
+  ];
+
+  const smsColumns = [
+    { key: "type", header: "Type", accessor: (e: any) => <Badge variant={e.message_type === "plan_approved" ? "info" : "warning"} size="sm">{e.message_type.replace(/_/g, " ")}</Badge>, align: "center" as const, width: "140px" },
+    { key: "status", header: "Status", accessor: (e: any) => { const variant = e.status === "delivered" ? "success" : e.status === "sent" ? "info" : "warning"; return <Badge variant={variant} size="sm" dot dotColor={e.status === "delivered" ? "bg-green-500" : e.status === "sent" ? "bg-blue-500" : "bg-amber-500"}> {e.status}</Badge>; }, align: "center" as const, width: "120px" },
+    { key: "time", header: "Time", accessor: (e: any) => new Date(e.created_at).toLocaleString(), width: "180px", monospace: true },
+    { key: "sent", header: "Sent", accessor: (e: any) => e.sent_at ? new Date(e.sent_at).toLocaleTimeString() : "—", width: "120px", monospace: true },
+    { key: "recipients", header: "Recipients", accessor: (e: any) => e.recipient_count, align: "right" as const, width: "120px", monospace: true },
+    { key: "planVersion", header: "Plan", accessor: (e: any) => e.plan_version ? `v${e.plan_version}` : "—", align: "center" as const, width: "100px" },
+  ];
 
   return (
     <div className="space-y-6">
-      {/* Tab Navigation */}
-      <div
-        className="panel panel-elevated rounded-xl p-2 flex gap-2"
-        role="tablist"
-      >
-        <button
-          role="tab"
-          aria-selected={activeTab === "events"}
-          onClick={() => setActiveTab("events")}
-          className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-            activeTab === "events"
-              ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
-              : "text-navy-400 hover:text-white hover:bg-navy-800/50"
-          }`}
-        >
-          <span className="flex items-center justify-center gap-2">
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            Events ({events.length})
-          </span>
-        </button>
-        <button
-          role="tab"
-          aria-selected={activeTab === "plans"}
-          onClick={() => setActiveTab("plans")}
-          className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-            activeTab === "plans"
-              ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
-              : "text-navy-400 hover:text-white hover:bg-navy-800/50"
-          }`}
-        >
-          <span className="flex items-center justify-center gap-2">
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-            Plan Versions ({planVersions.length})
-          </span>
-        </button>
-        <button
-          role="tab"
-          aria-selected={activeTab === "sms"}
-          onClick={() => setActiveTab("sms")}
-          className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-            activeTab === "sms"
-              ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
-              : "text-navy-400 hover:text-white hover:bg-navy-800/50"
-          }`}
-        >
-          <span className="flex items-center justify-center gap-2">
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M8 12h4M8 12a2 2 0 100-4 2 2 0 000 4zm-6 0a2 2 0 100-4 2 2 0 000 4zm6 6h4M8 18a2 2 0 100-4 2 2 0 000 4zm-6 0a2 2 0 100-4 2 2 0 000 4zm10-12h2a2 2 0 012 2v10a2 2 0 01-2 2h-4a2 2 0 01-2-2v-3"
-              />
-            </svg>
-            SMS Log ({smsEntries.length})
-          </span>
-        </button>
+      <div className="card p-2 flex gap-2" role="tablist">
+        <Button variant={activeTab === "events" ? "primary" : "secondary"} size="sm" onClick={() => setActiveTab("events")} className="flex-1 flex items-center justify-center gap-2">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          Events ({events.length})
+        </Button>
+        <Button variant={activeTab === "plans" ? "primary" : "secondary"} size="sm" onClick={() => setActiveTab("plans")} className="flex-1 flex items-center justify-center gap-2">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+          Plan Versions ({planVersions.length})
+        </Button>
+        <Button variant={activeTab === "sms" ? "primary" : "secondary"} size="sm" onClick={() => setActiveTab("sms")} className="flex-1 flex items-center justify-center gap-2">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h4M8 12a2 2 0 100-4 2 2 0 000 4zm-6 0a2 2 0 100-4 2 2 0 000 4zm6 6h4M8 18a2 2 0 100-4 2 2 0 000 4zm-6 0a2 2 0 100-4 2 2 0 000 4zm10-12h2a2 2 0 012 2v10a2 2 0 01-2 2h-4a2 2 0 01-2-2v-3" /></svg>
+          SMS Log ({smsEntries.length})
+        </Button>
       </div>
 
-      {/* Events Tab */}
       {activeTab === "events" && (
-        <div
-          className="panel panel-elevated rounded-xl overflow-hidden"
-          role="tabpanel"
-        >
+        <Card className="overflow-hidden">
           {eventLoading ? (
-            <div className="p-8 text-center">
-              <div className="animate-pulse w-8 h-8 rounded-full border-2 border-cyan-500 border-t-transparent mx-auto mb-4" />
-              <p className="text-navy-400">Loading events...</p>
-            </div>
+            <div className="p-8 text-center"><div className="animate-pulse w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent mx-auto mb-4" /><p className="text-slate-500">Loading events...</p></div>
           ) : events.length === 0 ? (
-            <div className="p-8 text-center">
-              <div className="text-4xl mb-3">📋</div>
-              <p className="text-navy-400">No disaster events simulated yet.</p>
-              <p className="text-caption text-navy-500 mt-1">
-                Use Disaster Simulation to trigger events and see them here.
-              </p>
-            </div>
+            <div className="p-8 text-center"><div className="text-4xl mb-3">📋</div><p className="text-slate-500">No disaster events simulated yet.</p><p className="text-xs text-slate-400 mt-1">Use Disaster Simulation to trigger events and see them here.</p></div>
           ) : (
-            <div className="divide-y divide-navy-700/50">
-              {filteredEvents.map((event, idx) => (
-                <div
-                  key={event.event_id ?? idx}
-                  className="p-4 hover:bg-navy-800/50 transition-colors"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-3">
-                      <div
-                        className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg flex-shrink-0 ${
-                          event.event_type === "bridge_collapse"
-                            ? "bg-red-500/20"
-                            : event.event_type === "capacity_reduction"
-                              ? "bg-orange-500/20"
-                              : event.event_type === "rainfall"
-                                ? "bg-blue-500/20"
-                                : "bg-purple-500/20"
-                        }`}
-                      >
-                        {event.event_type === "bridge_collapse" && "🌉"}
-                        {event.event_type === "capacity_reduction" && "🏕️"}
-                        {event.event_type === "rainfall" && "🌧️"}
-                        {event.event_type === "combined" && "⚡"}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-white capitalize">
-                            {event.event_type?.replace("_", " ")}
-                          </span>
-                          {event.event_id && (
-                            <span className="text-micro font-mono text-navy-400 bg-navy-800 px-2 py-0.5 rounded">
-                              {event.event_id}
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-caption text-navy-400 mt-1 flex items-center gap-4">
-                          {event.timestamp && (
-                            <span className="flex items-center gap-1">
-                              <svg
-                                className="w-3 h-3"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                                strokeWidth={2}
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                                />
-                              </svg>
-                              {new Date(event.timestamp).toLocaleString()}
-                            </span>
-                          )}
-                          {event.metadata?.bridge_id && (
-                            <span className="flex items-center gap-1 text-amber-300">
-                              <svg
-                                className="w-3 h-3"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                                strokeWidth={2}
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-                                />
-                              </svg>
-                              Bridge: {event.metadata.bridge_id}
-                            </span>
-                          )}
-                          {event.metadata?.shelter_ids && (
-                            <span className="flex items-center gap-1 text-orange-300">
-                              <svg
-                                className="w-3 h-3"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                                strokeWidth={2}
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"
-                                />
-                              </svg>
-                              Shelters:{" "}
-                              {Array.isArray(event.metadata.shelter_ids)
-                                ? event.metadata.shelter_ids.join(", ")
-                                : event.metadata.shelter_ids}
-                            </span>
-                          )}
-                          {event.metadata?.reduction_pct && (
-                            <span className="flex items-center gap-1 text-red-300">
-                              <svg
-                                className="w-3 h-3"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                                strokeWidth={2}
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
-                                />
-                              </svg>
-                              Reduction: {event.metadata.reduction_pct}%
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      {event.result?.plan_invalidated ? (
-                        <span className="status-badge status-badge-critical flex items-center gap-1">
-                          <svg
-                            className="w-3 h-3"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            strokeWidth={2}
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                            />
-                          </svg>
-                          Plan Invalidated
-                        </span>
-                      ) : (
-                        <span className="status-badge status-badge-pending">
-                          Processed
-                        </span>
-                      )}
-                      {event.result?.new_plan && (
-                        <span className="status-badge status-badge-approved">
-                          v{event.result.new_plan.version}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {event.result?.message && (
-                    <div className="mt-3 p-3 bg-navy-800/50 rounded-lg text-sm text-navy-300">
-                      {event.result.message}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+            <DataTable columns={eventColumns} data={filteredEvents} keyAccessor={(e: any) => e.event_id} emptyMessage="No events recorded." />
           )}
-        </div>
+        </Card>
       )}
 
-      {/* Plan Versions Tab */}
       {activeTab === "plans" && (
-        <div
-          className="panel panel-elevated rounded-xl overflow-hidden"
-          role="tabpanel"
-        >
+        <Card className="overflow-hidden">
           {planVersions.length === 0 ? (
-            <div className="p-8 text-center">
-              <div className="text-4xl mb-3">📋</div>
-              <p className="text-navy-400">No plan versions available.</p>
-              <p className="text-caption text-navy-500 mt-1">
-                Plan versions will appear after optimization runs.
-              </p>
-            </div>
+            <div className="p-8 text-center"><div className="text-4xl mb-3">📋</div><p className="text-slate-500">No plan versions available.</p><p className="text-xs text-slate-400 mt-1">Plan versions will appear after optimization runs.</p></div>
           ) : (
-            <div className="divide-y divide-navy-700/50">
-              {planVersions.map((version, idx) => (
-                <div
-                  key={version.plan_id ?? version.version}
-                  className="p-4 hover:bg-navy-800/50 transition-colors"
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-navy-800 flex items-center justify-center text-xl font-mono font-bold text-cyan-300">
-                        v{version.version}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-white">
-                            Plan Version {version.version}
-                          </span>
-                          <span
-                            className={`status-badge ${version.status === "active" ? "status-badge-approved" : version.status === "invalid" ? "status-badge-critical" : "status-badge-pending"}`}
-                          >
-                            {version.status}
-                          </span>
-                        </div>
-                        <div className="text-caption text-navy-400 mt-1 flex items-center gap-4">
-                          <span className="flex items-center gap-1">
-                            <svg
-                              className="w-3 h-3"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                              strokeWidth={2}
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                              />
-                            </svg>
-                            {new Date(version.created_at).toLocaleString()}
-                          </span>
-                          {version.invalidated_at && (
-                            <span className="flex items-center gap-1 text-red-300">
-                              <svg
-                                className="w-3 h-3"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                                strokeWidth={2}
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  d="M6 18L18 6M6 6l12 12"
-                                />
-                              </svg>
-                              Invalidated:{" "}
-                              {new Date(
-                                version.invalidated_at,
-                              ).toLocaleString()}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-navy-300">
-                      <div className="flex items-center gap-1">
-                        <svg
-                          className="w-4 h-4 text-cyan-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                          strokeWidth={2}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                          />
-                        </svg>
-                        <span className="font-mono tabular-nums">
-                          {version.total_assigned_population?.toLocaleString()}
-                        </span>
-                        <span className="text-navy-500">assigned</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <svg
-                          className="w-4 h-4 text-red-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                          strokeWidth={2}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                          />
-                        </svg>
-                        <span className="font-mono tabular-nums">
-                          {version.total_unmet_population?.toLocaleString()}
-                        </span>
-                        <span className="text-navy-500">unmet</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <svg
-                          className="w-4 h-4 text-blue-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                          strokeWidth={2}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                          />
-                        </svg>
-                        <span className="font-mono tabular-nums">
-                          {version.optimization_status}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {version.invalidation_reason && (
-                    <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                      <div className="flex items-center gap-2 text-red-300 mb-1">
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                          strokeWidth={2}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                          />
-                        </svg>
-                        <span className="font-medium">
-                          Invalidation Reason:
-                        </span>
-                      </div>
-                      <p className="text-sm text-red-200">
-                        {version.invalidation_reason}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+            <DataTable columns={planColumns} data={planVersions} keyAccessor={(v: any) => v.plan_id} emptyMessage="No plan versions available." />
           )}
-        </div>
+        </Card>
       )}
 
-      {/* SMS Log Tab */}
       {activeTab === "sms" && (
-        <div
-          className="panel panel-elevated rounded-xl overflow-hidden"
-          role="tabpanel"
-        >
+        <Card className="overflow-hidden">
           {smsLoading ? (
-            <div className="p-8 text-center">
-              <div className="animate-pulse w-8 h-8 rounded-full border-2 border-cyan-500 border-t-transparent mx-auto mb-4" />
-              <p className="text-navy-400">Loading SMS log...</p>
-            </div>
+            <div className="p-8 text-center"><div className="animate-pulse w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent mx-auto mb-4" /><p className="text-slate-500">Loading SMS log...</p></div>
           ) : smsEntries.length === 0 ? (
-            <div className="p-8 text-center">
-              <div className="text-4xl mb-3">📡</div>
-              <p className="text-navy-400">No SMS messages dispatched yet.</p>
-              <p className="text-caption text-navy-500 mt-1">
-                SMS notifications are sent only after human authority approves a
-                relocation plan.
-              </p>
-            </div>
+            <div className="p-8 text-center"><div className="text-4xl mb-3">📡</div><p className="text-slate-500">No SMS messages dispatched yet.</p><p className="text-xs text-slate-400 mt-1">SMS notifications are sent only after human authority approves a relocation plan.</p></div>
           ) : (
-            <div className="divide-y divide-navy-700/50">
-              {smsEntries.slice(0, 50).map((entry, idx) => (
-                <div
-                  key={entry.id ?? idx}
-                  className="p-4 hover:bg-navy-800/50 transition-colors"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-3">
-                      <div
-                        className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                          entry.status === "delivered"
-                            ? "bg-green-500/20"
-                            : entry.status === "sent"
-                              ? "bg-blue-500/20"
-                              : "bg-amber-500/20"
-                        }`}
-                      >
-                        <svg
-                          className={`w-5 h-5 ${entry.status === "delivered" ? "text-green-400" : entry.status === "sent" ? "text-blue-400" : "text-amber-400"}`}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                          strokeWidth={2}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M8 12h4M8 12a2 2 0 100-4 2 2 0 000 4zm-6 0a2 2 0 100-4 2 2 0 000 4zm6 6h4M8 18a2 2 0 100-4 2 2 0 000 4zm-6 0a2 2 0 100-4 2 2 0 000 4zm10-12h2a2 2 0 012 2v10a2 2 0 01-2 2h-4a2 2 0 01-2-2v-3"
-                          />
-                        </svg>
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-white capitalize">
-                            {entry.message_type.replace("_", " ")}
-                          </span>
-                          <span
-                            className={`status-badge ${entry.status === "delivered" ? "status-badge-approved" : entry.status === "sent" ? "status-badge-active" : "status-badge-pending"}`}
-                          >
-                            {entry.status}
-                          </span>
-                        </div>
-                        <div className="text-caption text-navy-400 mt-1 flex items-center gap-4">
-                          <span className="flex items-center gap-1">
-                            <svg
-                              className="w-3 h-3"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                              strokeWidth={2}
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                              />
-                            </svg>
-                            {new Date(entry.created_at).toLocaleString()}
-                          </span>
-                          {entry.sent_at && (
-                            <span className="flex items-center gap-1 text-green-300">
-                              <svg
-                                className="w-3 h-3"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                                strokeWidth={2}
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                                />
-                              </svg>
-                              Sent:{" "}
-                              {new Date(entry.sent_at).toLocaleTimeString()}
-                            </span>
-                          )}
-                          <span className="flex items-center gap-1">
-                            <svg
-                              className="w-3 h-3"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                              strokeWidth={2}
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                              />
-                            </svg>
-                            {entry.recipient_count} recipients
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex-shrink-0">
-                      {entry.plan_version && (
-                        <span className="text-micro font-mono text-navy-400 bg-navy-800 px-2 py-0.5 rounded">
-                          Plan v{entry.plan_version}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {entry.message_content && (
-                    <details className="mt-3 group">
-                      <summary className="cursor-pointer text-caption text-navy-400 hover:text-cyan-300 flex items-center gap-1">
-                        <svg
-                          className="w-4 h-4 transition-transform group-open:rotate-90"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                          strokeWidth={2}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M19 9l-7 7-7-7"
-                          />
-                        </svg>
-                        View message content
-                      </summary>
-                      <div className="mt-2 p-3 bg-navy-800/50 rounded-lg text-sm text-navy-200 font-mono whitespace-pre-wrap">
-                        {entry.message_content}
-                      </div>
-                    </details>
-                  )}
-                </div>
-              ))}
-            </div>
+            <DataTable columns={smsColumns} data={smsEntries.slice(0, 50)} keyAccessor={(e: any) => e.id} emptyMessage="No SMS messages dispatched yet." />
           )}
-        </div>
+        </Card>
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { Badge } from "@/components/ui";
 
 interface ActiveEvent {
   id: string;
@@ -28,7 +29,7 @@ export function EmergencyStatusBanner() {
   if (isLoading) {
     return (
       <div className="border-b border-slate-200 bg-slate-50">
-        <div className="max-w-full px-6 py-2">
+        <div className="max-w-full px-4 md:px-6 py-2">
           <div className="h-6 bg-slate-200 animate-pulse rounded w-1/3" />
         </div>
       </div>
@@ -38,7 +39,7 @@ export function EmergencyStatusBanner() {
   if (!activeEvent) {
     return (
       <div className="border-b border-slate-200 bg-green-50">
-        <div className="max-w-full px-6 py-3">
+        <div className="max-w-full px-4 md:px-6 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
@@ -57,20 +58,14 @@ export function EmergencyStatusBanner() {
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-semibold text-green-800">
-                  NO ACTIVE EMERGENCY
-                </p>
-                <p className="text-xs text-green-700">
-                  System ready for operational deployment
-                </p>
+                <p className="text-sm font-semibold text-green-800">NO ACTIVE EMERGENCY</p>
+                <p className="text-xs text-green-700">System ready for operational deployment</p>
               </div>
             </div>
             <div className="flex items-center gap-2 text-xs text-green-700">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500" />
-              </span>
-              <span>System Operational</span>
+              <Badge variant="success" size="sm" dot dotColor="bg-green-500">
+                System Operational
+              </Badge>
             </div>
           </div>
         </div>
@@ -86,8 +81,8 @@ export function EmergencyStatusBanner() {
       iconColor: "text-amber-700",
       titleColor: "text-amber-800",
       descColor: "text-amber-700",
-      badgeBg: "bg-amber-100",
-      badgeColor: "text-amber-700",
+      badgeVariant: "warning" as const,
+      badgeDot: "bg-amber-500",
     };
 
     if (status === "active" && severity === "critical") {
@@ -99,8 +94,8 @@ export function EmergencyStatusBanner() {
         iconColor: "text-red-700",
         titleColor: "text-red-800",
         descColor: "text-red-700",
-        badgeBg: "bg-red-100",
-        badgeColor: "text-red-700",
+        badgeVariant: "danger" as const,
+        badgeDot: "bg-red-500",
       };
     }
 
@@ -113,8 +108,8 @@ export function EmergencyStatusBanner() {
         iconColor: "text-blue-700",
         titleColor: "text-blue-800",
         descColor: "text-blue-700",
-        badgeBg: "bg-blue-100",
-        badgeColor: "text-blue-700",
+        badgeVariant: "info" as const,
+        badgeDot: "bg-blue-500",
       };
     }
 
@@ -127,8 +122,8 @@ export function EmergencyStatusBanner() {
         iconColor: "text-purple-700",
         titleColor: "text-purple-800",
         descColor: "text-purple-700",
-        badgeBg: "bg-purple-100",
-        badgeColor: "text-purple-700",
+        badgeVariant: "info" as const,
+        badgeDot: "bg-purple-500",
       };
     }
 
@@ -141,8 +136,8 @@ export function EmergencyStatusBanner() {
         iconColor: "text-green-700",
         titleColor: "text-green-800",
         descColor: "text-green-700",
-        badgeBg: "bg-green-100",
-        badgeColor: "text-green-700",
+        badgeVariant: "success" as const,
+        badgeDot: "bg-green-500",
       };
     }
 
@@ -155,8 +150,8 @@ export function EmergencyStatusBanner() {
         iconColor: "text-cyan-700",
         titleColor: "text-cyan-800",
         descColor: "text-cyan-700",
-        badgeBg: "bg-cyan-100",
-        badgeColor: "text-cyan-700",
+        badgeVariant: "info" as const,
+        badgeDot: "bg-cyan-500",
       };
     }
 
@@ -181,12 +176,10 @@ export function EmergencyStatusBanner() {
 
   return (
     <div className={`border-b ${config.border} ${config.bg}`}>
-      <div className="max-w-full px-6 py-3">
+      <div className="max-w-full px-4 md:px-6 py-3">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div
-              className={`w-8 h-8 rounded-lg flex items-center justify-center ${config.iconBg}`}
-            >
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${config.iconBg}`}>
               <svg
                 className={`w-5 h-5 ${config.iconColor}`}
                 fill="none"
@@ -215,40 +208,21 @@ export function EmergencyStatusBanner() {
               </p>
               <p className={`text-xs ${config.descColor}`}>
                 {activeEvent.description || "Emergency event in progress"}
-                {activeEvent.affected_area &&
-                  ` • Affected: ${activeEvent.affected_area}`}
+                {activeEvent.affected_area && ` • Affected: ${activeEvent.affected_area}`}
               </p>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <span
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${config.badgeBg} ${config.badgeColor} border-current`}
-            >
-              <span className="relative flex h-1.5 w-1.5">
-                <span
-                  className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75`}
-                  style={{
-                    backgroundColor: config.iconColor.replace("text-", "bg-"),
-                  }}
-                />
-                <span
-                  className={`relative inline-flex rounded-full h-1.5 w-1.5`}
-                  style={{
-                    backgroundColor: config.iconColor.replace("text-", "bg-"),
-                  }}
-                />
-              </span>
+            <Badge variant={config.badgeVariant} size="sm" dot dotColor={config.badgeDot}>
               {formatStatus(activeEvent.status)}
               {activeEvent.severity === "critical" && (
                 <>
                   <span className="text-[10px] font-bold">•</span>
-                  <span className="text-[10px] font-bold uppercase">
-                    CRITICAL
-                  </span>
+                  <span className="text-[10px] font-bold uppercase">CRITICAL</span>
                 </>
               )}
-            </span>
+            </Badge>
 
             <span className="text-xs text-slate-500 hidden sm:block">
               Started: {new Date(activeEvent.started_at).toLocaleTimeString()}

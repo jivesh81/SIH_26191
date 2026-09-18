@@ -3,6 +3,7 @@
 import { ReactNode } from "react";
 import { CollapsibleSidebar } from "@/components/ui/CollapsibleSidebar";
 import { PersistentLiveMapPanel } from "@/components/map/PersistentLiveMap";
+import { GlobalHeader } from "@/components/ui/GlobalHeader";
 import { CommandCenterHeader } from "@/components/ui/CommandCenterHeader";
 import { EmergencyStatusBanner } from "@/components/ui/EmergencyStatusBanner";
 import { useSidebar } from "@/context/SidebarContext";
@@ -22,12 +23,13 @@ export function AppShell({ children }: AppShellProps) {
         className="flex-1 flex flex-col min-w-0 transition-all duration-300"
         style={{ marginLeft: isOpen ? "288px" : "64px" }}
       >
+        <GlobalHeader />
         <CommandCenterHeader />
         <EmergencyStatusBanner />
 
         <div className="flex-1 flex flex-row min-h-0">
           <main className="flex-1 min-w-0 flex flex-col">
-            <div className="flex-1 p-6 md:p-8 lg:p-10 overflow-auto">
+            <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
               {children}
             </div>
           </main>

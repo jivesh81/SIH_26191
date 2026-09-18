@@ -1,6 +1,7 @@
 "use client";
 
 import { useKPIs } from "@/hooks/useApi";
+import { Badge } from "@/components/ui";
 
 export function KPIPanel() {
   const {
@@ -18,111 +19,53 @@ export function KPIPanel() {
     {
       label: "Vulnerable Population",
       value: vulnerablePopulation?.toLocaleString() ?? "—",
-      icon: "👥",
-      color: "blue",
       trend: "Live from backend",
+      status: "info" as const,
     },
     {
       label: "Effective Capacity",
       value: totalEffectiveCapacity?.toLocaleString() ?? "—",
-      icon: "🏕️",
-      color: "green",
       trend:
         totalEffectiveCapacity && vulnerablePopulation
           ? `${Math.round((totalEffectiveCapacity / vulnerablePopulation) * 100)}% coverage`
           : "Live from backend",
+      status: "success" as const,
     },
     {
       label: "Assigned Population",
       value: assignedPopulation?.toLocaleString() ?? "—",
-      icon: "✅",
-      color: "blue",
-      trend: activePlanVersion
-        ? `Plan v${activePlanVersion}`
-        : "No active plan",
+      trend: activePlanVersion ? `Plan v${activePlanVersion}` : "No active plan",
+      status: "info" as const,
     },
     {
       label: "Unmet Population",
       value: unmetPopulation?.toLocaleString() ?? "—",
-      icon: "⚠️",
-      color: unmetPopulation && unmetPopulation > 0 ? "red" : "green",
       trend:
-        unmetPopulation && unmetPopulation > 0
-          ? "Requires attention"
-          : "Fully covered",
+        unmetPopulation && unmetPopulation > 0 ? "Requires attention" : "Fully covered",
+      status: unmetPopulation && unmetPopulation > 0 ? ("danger" as const) : ("success" as const),
     },
     {
       label: "Active Plan Version",
       value: activePlanVersion ? `v${activePlanVersion}` : "—",
-      icon: "📋",
-      color: "purple",
       trend: `Status: ${activePlanStatus}`,
+      status: "info" as const,
     },
     {
       label: "Plan Status",
       value: activePlanStatus?.toUpperCase() ?? "—",
-      icon: "📊",
-      color:
-        activePlanStatus === "active"
-          ? "green"
-          : activePlanStatus === "invalid"
-            ? "red"
-            : "slate",
       trend: "Auto-refresh: 5s",
+      status:
+        activePlanStatus === "active"
+          ? ("success" as const)
+          : activePlanStatus === "invalid"
+          ? ("danger" as const)
+          : ("neutral" as const),
     },
   ];
 
-  const colorStyles: Record<
-    string,
-    { bg: string; text: string; border: string; iconBg: string }
-  > = {
-    blue: {
-      bg: "bg-blue-50",
-      text: "text-blue-700",
-      border: "border-blue-200",
-      iconBg: "bg-blue-100",
-    },
-    green: {
-      bg: "bg-green-50",
-      text: "text-green-700",
-      border: "border-green-200",
-      iconBg: "bg-green-100",
-    },
-    red: {
-      bg: "bg-red-50",
-      text: "text-red-700",
-      border: "border-red-200",
-      iconBg: "bg-red-100",
-    },
-    purple: {
-      bg: "bg-purple-50",
-      text: "text-purple-700",
-      border: "border-purple-200",
-      iconBg: "bg-purple-100",
-    },
-    orange: {
-      bg: "bg-orange-50",
-      text: "text-orange-700",
-      border: "border-orange-200",
-      iconBg: "bg-orange-100",
-    },
-    amber: {
-      bg: "bg-amber-50",
-      text: "text-amber-700",
-      border: "border-amber-200",
-      iconBg: "bg-amber-100",
-    },
-    slate: {
-      bg: "bg-slate-50",
-      text: "text-slate-700",
-      border: "border-slate-200",
-      iconBg: "bg-slate-100",
-    },
-  };
-
   if (isLoading) {
     return (
-      <div className="card-elevated rounded-xl p-5 space-y-4 animate-fade-in">
+      <div className="card p-5 space-y-4">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
             <svg
@@ -141,14 +84,16 @@ export function KPIPanel() {
             </svg>
             Key Metrics
           </h3>
-          <span className="status-badge status-badge-active text-xs">LIVE</span>
+          <Badge variant="active" size="sm" dot dotColor="bg-green-500">
+            LIVE
+          </Badge>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="card rounded-lg p-5 animate-pulse">
-              <div className="h-5 bg-slate-200 rounded w-3/4 mb-2" />
+            <div key={i} className="card p-5 animate-pulse">
+              <div className="h-4 bg-slate-200 rounded w-3/4 mb-2" />
               <div className="h-10 bg-slate-200 rounded w-1/2 mb-2" />
-              <div className="h-4 bg-slate-200 rounded w-1/3" />
+              <div className="h-3 bg-slate-200 rounded w-1/3" />
             </div>
           ))}
         </div>
@@ -158,7 +103,7 @@ export function KPIPanel() {
 
   if (error) {
     return (
-      <div className="card rounded-xl p-5 bg-red-50 border-red-200">
+      <div className="card p-5 bg-red-50 border-red-200">
         <div className="flex items-center gap-2 text-red-700">
           <svg
             className="w-5 h-5"
@@ -180,7 +125,7 @@ export function KPIPanel() {
   }
 
   return (
-    <div className="card-elevated rounded-xl p-5 space-y-4 animate-fade-in">
+    <div className="card p-5 space-y-4">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
           <svg
@@ -199,42 +144,27 @@ export function KPIPanel() {
           </svg>
           Key Metrics
         </h3>
-        <span className="status-badge status-badge-active text-xs flex items-center gap-1">
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
-            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500" />
-          </span>
+        <Badge variant="active" size="sm" dot dotColor="bg-green-500">
           LIVE
-        </span>
+        </Badge>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        {kpis.map((kpi, idx) => {
-          const styles = colorStyles[kpi.color] || colorStyles.slate;
-          return (
-            <div
-              key={idx}
-              className={`card rounded-lg p-5 transition-all duration-300 hover:border-opacity-50 hover:-translate-y-1 relative overflow-hidden group ${styles.bg} ${styles.border}`}
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-transparent via-current/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <div className="relative z-10 flex items-start justify-between mb-3">
-                <span className="text-2xl">{kpi.icon}</span>
-                <span className="status-badge status-badge-inactive text-xs">
-                  LIVE
-                </span>
-              </div>
-              <p className="relative z-10 text-xs text-slate-500 mb-1">
-                {kpi.label}
-              </p>
-              <p className="relative z-10 text-xl font-extrabold text-slate-900 tabular-nums mb-2">
-                {kpi.value}
-              </p>
-              <p className="relative z-10 text-xs text-slate-500">
-                {kpi.trend}
-              </p>
+        {kpis.map((kpi, idx) => (
+          <div
+            key={idx}
+            className="card p-4 transition-all duration-200 hover:border-slate-300 hover:shadow-md"
+          >
+            <div className="flex items-start justify-between mb-2">
+              <Badge variant={kpi.status} size="sm" className="whitespace-nowrap">
+                {kpi.status.toUpperCase()}
+              </Badge>
             </div>
-          );
-        })}
+            <p className="text-xs text-slate-500 mb-1">{kpi.label}</p>
+            <p className="text-xl font-extrabold text-slate-900 tabular-nums mb-2">{kpi.value}</p>
+            <p className="text-xs text-slate-500">{kpi.trend}</p>
+          </div>
+        ))}
       </div>
     </div>
   );
