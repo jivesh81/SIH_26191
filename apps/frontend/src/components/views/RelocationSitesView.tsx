@@ -3,7 +3,7 @@
 import { useSites, Site } from "@/hooks/useApi";
 import { useState, useMemo } from "react";
 import { useMapState } from "@/context/MapStateContext";
-import { Card, Badge, DataTable, Input, Select, Button } from "@/components/ui";
+import { Card, Badge, DataTable, Input, Button } from "@/components/ui";
 
 type SortKey = "suitability_score" | "max_capacity" | "available_capacity" | "utilization_pct" | "elevation_m" | "name";
 
@@ -145,14 +145,18 @@ export function RelocationSitesView() {
           <Input label="Search relocation sites..." placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} leftIcon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>} className="max-w-md flex-1" />
           <div className="flex items-center gap-3">
             <span className="text-xs text-slate-500">{filteredAndSortedSites.length} sites</span>
-            <Select value={sortConfig.key} onChange={(e) => setSortConfig({ key: e.target.value as SortKey, direction: "desc" })} options={[
-              { value: "suitability_score", label: "Suitability Score" },
-              { value: "max_capacity", label: "Max Capacity" },
-              { value: "available_capacity", label: "Available Capacity" },
-              { value: "utilization_pct", label: "Utilization %" },
-              { value: "elevation_m", label: "Elevation (m)" },
-              { value: "name", label: "Site Name" },
-            ]} className="min-w-[180px]" />
+            <select
+              value={sortConfig.key}
+              onChange={(e) => setSortConfig({ key: e.target.value as SortKey, direction: "desc" })}
+              className="min-w-[180px] rounded-lg border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+            >
+              <option value="suitability_score">Suitability Score</option>
+              <option value="max_capacity">Max Capacity</option>
+              <option value="available_capacity">Available Capacity</option>
+              <option value="utilization_pct">Utilization %</option>
+              <option value="elevation_m">Elevation (m)</option>
+              <option value="name">Site Name</option>
+            </select>
             <Button variant="ghost" size="icon" onClick={() => setSortConfig((prev) => ({ ...prev, direction: prev.direction === "asc" ? "desc" : "asc" }))} aria-label={sortConfig.direction === "asc" ? "Sort descending" : "Sort ascending"}>
               <svg className={"w-5 h-5 " + (sortConfig.direction === "desc" ? "rotate-180" : "")} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" /></svg>
             </Button>

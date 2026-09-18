@@ -60,6 +60,8 @@ from app.services.data_layer import (
     get_open_routes,
     get_active_shelters,
     get_available_sites,
+    get_routes as get_routes_fn,
+    get_sites as get_sites_fn,
 )
 
 from app.services.intelligence import (
@@ -71,6 +73,7 @@ from app.services.intelligence import (
     check_route_feasibility,
     check_all_routes_for_site,
     check_all_routes_from_habitation,
+    get_route_candidates,
 )
 from app.ml.risk_predictor import get_predictor, predict_risk_score
 from app.services.sms import get_sms_service
@@ -967,6 +970,40 @@ async def get_routes_to_site(site_id: str):
 
 
 # =============================================================================
+# Core Intelligence - Route Candidates (for multi-route selection UI)
+# =============================================================================
+
+@router.get(
+    "/intelligence/route/candidates/{habitation_id}",
+    tags=["Intelligence"],
+    summary="Get all candidate evacuation routes from a habitation to open sites",
+    description=(
+        "Returns all geographically reachable routes from a habitation to any open "
+        "relocation site, ranked by distance, travel time, route status, and route type. "
+        "Includes geometry for map rendering."
+    ),
+)
+async def get_route_candidates_endpoint(habitation_id: str):
+    """Get all candidate evacuation routes for a habitation."""
+    habitation = get_habitation_by_id(habitation_id)
+
+    if not habitation:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Habitation {habitation_id} not found",
+        )
+
+    candidates = get_route_candidates(habitation_id)
+
+    return {
+        "habitation_id": habitation_id,
+        "habitation_name": habitation.name,
+        "candidates": candidates,
+        "total": len(candidates),
+    }
+
+
+# =============================================================================
 # Relocation Optimization
 # =============================================================================
 
@@ -1167,3 +1204,23 @@ async def get_sms_log(plan_id: Optional[str] = None, limit: int = 100):
     # Convert dataclass instances to dicts for Pydantic validation
     entry_dicts = [entry.__dict__ if hasattr(entry, '__dict__') else entry for entry in entries]
     return SMSLogResponse(entries=entry_dicts, total=len(entry_dicts))
+
+
+# =============================================================================
+# Demo State Management
+# =============================================================================
+
+@router.post(
+    "/demo/reset",
+    tags=["Demo"],
+    summary="Reset demo state",
+    description="Clears all cached data (routes, sites) to reset demo state for replay.",
+)
+async def reset_demo_state():
+    """Reset demo state by clearing lru_cache on data layer functions."""
+    get_routes_fn.cache_clear()
+    get_sites_fn.cache_clear()
+    return {
+        "success": True,
+        "message": "Demo state reset successfully. Routes and sites caches cleared.",
+    }

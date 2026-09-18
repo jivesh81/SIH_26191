@@ -64,7 +64,7 @@ class TestDemoDataCompleteness:
 
     def test_routes_load(self):
         routes = get_routes()
-        assert len(routes) == 11  # 11 evacuation routes
+        assert len(routes) == 26  # 26 evacuation routes (including alternates for high-pop habitations)
         
         for route in routes:
             assert route.id.startswith("route_")

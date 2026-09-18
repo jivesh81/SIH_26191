@@ -53,6 +53,30 @@
     },
     {
       "type": "Feature",
+      "id": "route_barpeta_3",
+      "properties": {
+        "id": "route_barpeta_3",
+        "name": "Barpeta Road - SH2 to Howly Site",
+        "route_type": "alternative",
+        "length_km": 15.5,
+        "travel_time_min": 32,
+        "capacity_per_hour": 250,
+        "current_load": 40,
+        "status": "open",
+        "bridge_dependencies": ["bridge_chaulkhowa"],
+        "last_assessment": "2024-03-01"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [91.03, 26.30],
+          [91.08, 26.30],
+          [91.15, 26.30]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
       "id": "route_howly_1",
       "properties": {
         "id": "route_howly_1",
@@ -78,6 +102,54 @@
     },
     {
       "type": "Feature",
+      "id": "route_howly_2",
+      "properties": {
+        "id": "route_howly_2",
+        "name": "Howly - District Road to Barpeta Site",
+        "route_type": "alternative",
+        "length_km": 14.8,
+        "travel_time_min": 30,
+        "capacity_per_hour": 200,
+        "current_load": 35,
+        "status": "open",
+        "bridge_dependencies": ["bridge_beki"],
+        "last_assessment": "2024-03-01"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [91.13, 26.27],
+          [91.10, 26.29],
+          [91.03, 26.30]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "route_howly_3",
+      "properties": {
+        "id": "route_howly_3",
+        "name": "Howly - Rural Road to Bajali Site",
+        "route_type": "contingency",
+        "length_km": 18.2,
+        "travel_time_min": 38,
+        "capacity_per_hour": 150,
+        "current_load": 20,
+        "status": "open",
+        "bridge_dependencies": [],
+        "last_assessment": "2024-03-01"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [91.13, 26.27],
+          [91.18, 26.30],
+          [91.25, 26.35]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
       "id": "route_chenga_1",
       "properties": {
         "id": "route_chenga_1",
@@ -97,6 +169,55 @@
           [90.83, 26.44],
           [90.84, 26.46],
           [90.85, 26.47]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "route_chenga_2",
+      "properties": {
+        "id": "route_chenga_2",
+        "name": "Chenga - Alt via NH31 to Barpeta Site",
+        "route_type": "alternative",
+        "length_km": 16.5,
+        "travel_time_min": 35,
+        "capacity_per_hour": 200,
+        "current_load": 25,
+        "status": "open",
+        "bridge_dependencies": ["bridge_beki"],
+        "last_assessment": "2024-03-01"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [90.83, 26.44],
+          [90.88, 26.42],
+          [90.95, 26.38],
+          [91.00, 26.40]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "route_chenga_3",
+      "properties": {
+        "id": "route_chenga_3",
+        "name": "Chenga - Rural Connector to Mandia Site",
+        "route_type": "contingency",
+        "length_km": 12.0,
+        "travel_time_min": 28,
+        "capacity_per_hour": 150,
+        "current_load": 15,
+        "status": "open",
+        "bridge_dependencies": [],
+        "last_assessment": "2024-03-01"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [90.83, 26.44],
+          [90.75, 26.50],
+          [90.65, 26.58]
         ]
       }
     },
@@ -152,6 +273,31 @@
     },
     {
       "type": "Feature",
+      "id": "route_mandia_3",
+      "properties": {
+        "id": "route_mandia_3",
+        "name": "Mandia - Connector to Chenga Site",
+        "route_type": "contingency",
+        "length_km": 11.5,
+        "travel_time_min": 25,
+        "capacity_per_hour": 180,
+        "current_load": 20,
+        "status": "open",
+        "bridge_dependencies": ["culvert_1"],
+        "last_assessment": "2024-03-01"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [90.67, 26.56],
+          [90.72, 26.52],
+          [90.80, 26.50],
+          [90.83, 26.48]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
       "id": "route_goberadhana_1",
       "properties": {
         "id": "route_goberadhana_1",
@@ -172,6 +318,54 @@
           [90.98, 26.51],
           [90.90, 26.50],
           [90.85, 26.47]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "route_goberadhana_2",
+      "properties": {
+        "id": "route_goberadhana_2",
+        "name": "Goberadhana - Alt to Barpeta Site",
+        "route_type": "alternative",
+        "length_km": 10.2,
+        "travel_time_min": 24,
+        "capacity_per_hour": 220,
+        "current_load": 30,
+        "status": "open",
+        "bridge_dependencies": ["bridge_beki"],
+        "last_assessment": "2024-03-01"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [91.02, 26.52],
+          [91.00, 26.48],
+          [91.00, 26.42]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "route_goberadhana_3",
+      "properties": {
+        "id": "route_goberadhana_3",
+        "name": "Goberadhana - Connector to Howly Site",
+        "route_type": "contingency",
+        "length_km": 14.5,
+        "travel_time_min": 32,
+        "capacity_per_hour": 150,
+        "current_load": 15,
+        "status": "open",
+        "bridge_dependencies": ["bridge_chaulkhowa"],
+        "last_assessment": "2024-03-01"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [91.02, 26.52],
+          [91.05, 26.45],
+          [91.12, 26.35]
         ]
       }
     },
@@ -225,6 +419,54 @@
     },
     {
       "type": "Feature",
+      "id": "route_bajali_2",
+      "properties": {
+        "id": "route_bajali_2",
+        "name": "Pathsala - Alt to Howly Site",
+        "route_type": "alternative",
+        "length_km": 16.0,
+        "travel_time_min": 34,
+        "capacity_per_hour": 200,
+        "current_load": 25,
+        "status": "open",
+        "bridge_dependencies": [],
+        "last_assessment": "2024-03-01"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [91.22, 26.32],
+          [91.18, 26.30],
+          [91.15, 26.30]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "route_bajali_3",
+      "properties": {
+        "id": "route_bajali_3",
+        "name": "Pathsala - Connector to Barpeta Site",
+        "route_type": "contingency",
+        "length_km": 20.5,
+        "travel_time_min": 42,
+        "capacity_per_hour": 150,
+        "current_load": 15,
+        "status": "open",
+        "bridge_dependencies": ["bridge_beki"],
+        "last_assessment": "2024-03-01"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [91.22, 26.32],
+          [91.15, 26.30],
+          [91.03, 26.30]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
       "id": "route_sarbhog_1",
       "properties": {
         "id": "route_sarbhog_1",
@@ -249,6 +491,54 @@
     },
     {
       "type": "Feature",
+      "id": "route_sarbhog_2",
+      "properties": {
+        "id": "route_sarbhog_2",
+        "name": "Sarbhog - Alt to Bajali Site",
+        "route_type": "alternative",
+        "length_km": 12.0,
+        "travel_time_min": 26,
+        "capacity_per_hour": 200,
+        "current_load": 20,
+        "status": "open",
+        "bridge_dependencies": [],
+        "last_assessment": "2024-03-01"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [91.28, 26.70],
+          [91.30, 26.60],
+          [91.25, 26.43]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "route_sarbhog_3",
+      "properties": {
+        "id": "route_sarbhog_3",
+        "name": "Sarbhog - Connector to Rupsi Site",
+        "route_type": "contingency",
+        "length_km": 8.5,
+        "travel_time_min": 20,
+        "capacity_per_hour": 120,
+        "current_load": 10,
+        "status": "open",
+        "bridge_dependencies": [],
+        "last_assessment": "2024-03-01"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [91.28, 26.70],
+          [91.20, 26.68],
+          [90.83, 26.72]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
       "id": "route_pakabetbari_1",
       "properties": {
         "id": "route_pakabetbari_1",
@@ -268,6 +558,78 @@
           [91.25, 26.50],
           [91.24, 26.45],
           [91.25, 26.35]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "route_pakabetbari_2",
+      "properties": {
+        "id": "route_pakabetbari_2",
+        "name": "Pakabetbari - Alt to Bajali Site",
+        "route_type": "alternative",
+        "length_km": 11.0,
+        "travel_time_min": 25,
+        "capacity_per_hour": 180,
+        "current_load": 15,
+        "status": "open",
+        "bridge_dependencies": [],
+        "last_assessment": "2024-03-01"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [91.25, 26.50],
+          [91.28, 26.45],
+          [91.25, 26.38]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "route_barnagar_1",
+      "properties": {
+        "id": "route_barnagar_1",
+        "name": "Barnagar - SH15 to Howly Site",
+        "route_type": "primary",
+        "length_km": 5.5,
+        "travel_time_min": 13,
+        "capacity_per_hour": 300,
+        "current_load": 50,
+        "status": "open",
+        "bridge_dependencies": ["bridge_chaulkhowa"],
+        "last_assessment": "2024-03-01"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [91.10, 26.25],
+          [91.12, 26.27],
+          [91.13, 26.27]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "route_barnagar_2",
+      "properties": {
+        "id": "route_barnagar_2",
+        "name": "Barnagar - Alt to Barpeta Site",
+        "route_type": "alternative",
+        "length_km": 13.5,
+        "travel_time_min": 28,
+        "capacity_per_hour": 200,
+        "current_load": 25,
+        "status": "open",
+        "bridge_dependencies": ["bridge_beki"],
+        "last_assessment": "2024-03-01"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [91.10, 26.25],
+          [91.05, 26.28],
+          [91.03, 26.30]
         ]
       }
     }

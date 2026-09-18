@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   getHabitations,
   getSites,
   getRoutes,
   getActivePlan,
   checkRouteFeasibility,
+  getRouteCandidates,
 } from "@/lib/api";
 import {
   Habitation,
@@ -14,6 +15,8 @@ import {
   Route,
   RiskAssessmentResponse,
   RiskAssessmentListResponse,
+  RouteCandidate,
+  RouteCandidatesResponse,
 } from "@/lib/api";
 import {
   useRouteFeasibilityCheck,
@@ -22,17 +25,13 @@ import {
   useRoutes,
   useRiskAssessments,
 } from "@/hooks/useApi";
-import { Card, Badge, Button } from "@/components/ui";
-
-interface MapIntelligenceViewProps {
-  onSiteSelect?: (site: Site, route: Route | null) => void;
-}
+import { Card, Badge, Button, Select } from "@/components/ui";
 
 const BARPETA_BOUNDS: [number, number, number, number] = [90.5, 26.0, 91.5, 27.0];
 const BARPETA_CENTER: [number, number] = [91.0, 26.5];
 
 const RISK_COLORS = { RED_ZONE: "#991b1b", HIGH: "#dc2626", MEDIUM: "#f97316", LOW: "#16a34a" };
-const COLORS = { site: "#059669", routeOpen: "#16a34a", routeCongested: "#f97316", routeClosed: "#dc2626", evacuation: "#2563eb", evacuationOutline: "#ffffff", text: "#0f172a" };
+const COLORS = { site: "#059669", routeOpen: "#16a34a", routeCongested: "#f97316", routeClosed: "#dc2626", evacuation: "#2563eb", evacuationOutline: "#ffffff", text: "#0f172a", candidateRoute: "#64748b", selectedRoute: "#1d4ed8" };
 const RISK_LABELS: Record<string, string> = { RED_ZONE: "RED ZONE", HIGH: "HIGH", MEDIUM: "MEDIUM", LOW: "LOW" };
 
 function getFeatureCenter(geometry: any): [number, number] | null {
@@ -81,16 +80,26 @@ function findRouteGeometry(routeId: string, routes: Route[]): Route | null {
   return routes.find((r) => r.id === routeId) ?? null;
 }
 
-declare global { interface Window { __siteClickHandler?: (siteId: string, feature: any) => void; } }
+declare global { interface Window { __siteClickHandler?: (siteId: string, feature: any) => void; __habitationClickHandler?: (habitationId: string, feature: any) => void; } }
+
+interface MapIntelligenceViewProps {
+  onSiteSelect?: (site: Site, route: Route | null) => void;
+}
 
 export function MapIntelligenceView({ onSiteSelect }: MapIntelligenceViewProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const [selectedSite, setSelectedSite] = useState<Site | null>(null);
+  const [selectedHabitation, setSelectedHabitation] = useState<Habitation | null>(null);
   const [evacuationRoute, setEvacuationRoute] = useState<Route | null>(null);
   const [routeFeasibility, setRouteFeasibility] = useState<{ feasible: boolean; reason: string; routeUsed: string | null } | null>(null);
   const [showLegend, setShowLegend] = useState(true);
-  const [layerVisibility, setLayerVisibility] = useState({ habitations: true, sites: true, routes: true, evacuation: true, hazardZones: false });
+  const [layerVisibility, setLayerVisibility] = useState({ habitations: true, sites: true, routes: true, evacuation: true, hazardZones: false, candidateRoutes: true });
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [routeCandidates, setRouteCandidates] = useState<RouteCandidate[]>([]);
+  const [selectedCandidate, setSelectedCandidate] = useState<RouteCandidate | null>(null);
+  const [isLoadingCandidates, setIsLoadingCandidates] = useState(false);
+  const [candidateRoutesLayerVisible, setCandidateRoutesLayerVisible] = useState(true);
 
   const { data: habitationsData, isLoading: habitationsLoading } = useHabitations(false);
   const { data: sitesData, isLoading: sitesLoading } = useSites(false);
@@ -111,6 +120,8 @@ export function MapIntelligenceView({ onSiteSelect }: MapIntelligenceViewProps) 
 
   useEffect(() => { window.__siteClickHandler = (siteId: string, feature: any) => { const site = sites.find((s) => s.id === siteId); if (site) setSelectedSite(site); }; return () => { window.__siteClickHandler = undefined; }; }, [sites]);
 
+  useEffect(() => { window.__habitationClickHandler = async (habitationId: string, feature: any) => { const hab = habitations.find((h) => h.id === habitationId); if (hab) { setSelectedHabitation(hab); setSelectedSite(null); setEvacuationRoute(null); setRouteFeasibility(null); setSelectedCandidate(null); setIsLoadingCandidates(true); try { const data = await getRouteCandidates(habitationId); setRouteCandidates(data.candidates); if (data.candidates.length > 0) { setSelectedCandidate(data.candidates[0]); const route = routes.find((r) => r.id === data.candidates[0].route_id); setEvacuationRoute(route ?? null); } } catch (e) { console.error("Failed to load route candidates:", e); } finally { setIsLoadingCandidates(false); } } }; return () => { window.__habitationClickHandler = undefined; }; }, [habitations, routes]);
+
   const loadDataLayers = async (map: any) => {
     try { addHabitationLayer(map, habitations); addSiteLayer(map, sites); addRouteLayer(map, routes); fitToData(map, habitations, sites); } catch (error) { console.error("Error loading map data:", error); }
   };
@@ -127,6 +138,7 @@ export function MapIntelligenceView({ onSiteSelect }: MapIntelligenceViewProps) 
     }
     if (!map.getLayer("habitation-labels")) { map.addLayer({ id: "habitation-labels", type: "symbol", source: "habitations", filter: ["<=", ["get", "priority_rank"], 10], layout: { "text-field": ["get", "name"], "text-size": 10, "text-offset": [0, 1.4], "text-anchor": "top" }, paint: { "text-color": COLORS.text, "text-halo-color": "#ffffff", "text-halo-width": 1.5 } }); }
     if (map.getLayer("habitations")) { map.setLayoutProperty("habitations", "visibility", layerVisibility.habitations ? "visible" : "none"); map.setLayoutProperty("habitation-labels", "visibility", layerVisibility.habitations ? "visible" : "none"); }
+    map.on("click", "habitations", (e: any) => { const feature = e.features?.[0]; if (!feature) return; const habitationId = feature.properties?.id; if (habitationId && window.__habitationClickHandler) window.__habitationClickHandler(habitationId, feature); });
   };
 
   const addSiteLayer = (map: any, sites: Site[]) => {
@@ -150,6 +162,81 @@ export function MapIntelligenceView({ onSiteSelect }: MapIntelligenceViewProps) 
     if (map.getLayer("routes-base")) { map.setLayoutProperty("routes-base", "visibility", layerVisibility.routes ? "visible" : "none"); map.setLayoutProperty("routes-closed-pattern", "visibility", layerVisibility.routes ? "visible" : "none"); map.setLayoutProperty("route-labels", "visibility", layerVisibility.routes ? "visible" : "none"); }
   };
 
+  const addCandidateRoutesLayer = (map: any, candidates: RouteCandidate[]) => {
+    const features = candidates
+      .filter((c) => c.geometry)
+      .map((c) => ({
+        type: "Feature" as const,
+        geometry: c.geometry,
+        properties: {
+          id: c.route_id,
+          name: c.route_name,
+          route_type: c.route_type,
+          site_id: c.site_id,
+          site_name: c.site_name,
+          distance_km: c.distance_km,
+          travel_time_min: c.travel_time_min,
+          status: c.status,
+          capacity_per_hour: c.capacity_per_hour,
+          is_recommended: c.is_recommended,
+          is_selected: c.route_id === selectedCandidate?.route_id,
+        },
+      }));
+    const data = makeFeatureCollection(features);
+    if (!map.getSource("candidate-routes")) { map.addSource("candidate-routes", { type: "geojson", data }); } else { updateSource(map, "candidate-routes", data); }
+    
+    // Dimmed candidate routes (non-selected)
+    if (!map.getLayer("candidate-routes-dimmed")) {
+      map.addLayer({
+        id: "candidate-routes-dimmed",
+        type: "line",
+        source: "candidate-routes",
+        filter: ["==", ["get", "is_selected"], false],
+        paint: {
+          "line-color": COLORS.candidateRoute,
+          "line-width": 2,
+          "line-opacity": 0.4,
+          "line-dasharray": [4, 3],
+        },
+      });
+    }
+    
+    // Highlighted selected route
+    if (!map.getLayer("candidate-routes-selected")) {
+      map.addLayer({
+        id: "candidate-routes-selected",
+        type: "line",
+        source: "candidate-routes",
+        filter: ["==", ["get", "is_selected"], true],
+        paint: {
+          "line-color": COLORS.selectedRoute,
+          "line-width": 5,
+          "line-opacity": 1.0,
+        },
+      });
+    }
+    
+    // Outline for selected route
+    if (!map.getLayer("candidate-routes-selected-outline")) {
+      map.addLayer({
+        id: "candidate-routes-selected-outline",
+        type: "line",
+        source: "candidate-routes",
+        filter: ["==", ["get", "is_selected"], true],
+        paint: {
+          "line-color": "#ffffff",
+          "line-width": 7,
+          "line-opacity": 0.8,
+        },
+        layout: { "line-cap": "round", "line-join": "round" },
+      });
+    }
+
+    if (map.getLayer("candidate-routes-dimmed")) { map.setLayoutProperty("candidate-routes-dimmed", "visibility", layerVisibility.candidateRoutes ? "visible" : "none"); }
+    if (map.getLayer("candidate-routes-selected")) { map.setLayoutProperty("candidate-routes-selected", "visibility", layerVisibility.candidateRoutes ? "visible" : "none"); }
+    if (map.getLayer("candidate-routes-selected-outline")) { map.setLayoutProperty("candidate-routes-selected-outline", "visibility", layerVisibility.candidateRoutes ? "visible" : "none"); }
+  };
+
   const addEvacuationRouteLayer = (map: any, route: Route | null) => {
     if (!route?.geometry) { if (map.getSource("evacuation-route")) { map.removeLayer("evacuation-route"); map.removeLayer("evacuation-route-outline"); map.removeSource("evacuation-route"); } return; }
     const data = makeFeatureCollection([{ type: "Feature" as const, geometry: route.geometry, properties: { id: route.id, name: route.name } }]);
@@ -169,14 +256,24 @@ export function MapIntelligenceView({ onSiteSelect }: MapIntelligenceViewProps) 
 
   useEffect(() => { if (mapRef.current) addEvacuationRouteLayer(mapRef.current, evacuationRoute); }, [evacuationRoute, layerVisibility.evacuation]);
 
+  useEffect(() => { if (mapRef.current) addCandidateRoutesLayer(mapRef.current, routeCandidates); }, [routeCandidates, selectedCandidate, layerVisibility.candidateRoutes]);
+
+  // Use CartoDB Positron (light) raster tiles - excellent English labels, free for reasonable usage
+  const BASEMAP_TILES = [
+    "https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+    "https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+    "https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+  ];
+
   useEffect(() => {
     if (mapRef.current) {
       const map = mapRef.current;
-      ["habitations", "habitation-labels", "sites-polygon", "sites-point", "site-labels", "routes-base", "routes-closed-pattern", "route-labels", "evacuation-route", "evacuation-route-outline"].forEach((layerId) => { if (map.getLayer(layerId)) map.setLayoutProperty(layerId, "visibility", "visible"); });
+      ["habitations", "habitation-labels", "sites-polygon", "sites-point", "site-labels", "routes-base", "routes-closed-pattern", "route-labels", "evacuation-route", "evacuation-route-outline", "candidate-routes-dimmed", "candidate-routes-selected", "candidate-routes-selected-outline"].forEach((layerId) => { if (map.getLayer(layerId)) map.setLayoutProperty(layerId, "visibility", "visible"); });
       if (map.getLayer("habitations")) { map.setLayoutProperty("habitations", "visibility", layerVisibility.habitations ? "visible" : "none"); map.setLayoutProperty("habitation-labels", "visibility", layerVisibility.habitations ? "visible" : "none"); }
       if (map.getLayer("sites-polygon")) { map.setLayoutProperty("sites-polygon", "visibility", layerVisibility.sites ? "visible" : "none"); map.setLayoutProperty("sites-point", "visibility", layerVisibility.sites ? "visible" : "none"); map.setLayoutProperty("site-labels", "visibility", layerVisibility.sites ? "visible" : "none"); }
       if (map.getLayer("routes-base")) { map.setLayoutProperty("routes-base", "visibility", layerVisibility.routes ? "visible" : "none"); map.setLayoutProperty("routes-closed-pattern", "visibility", layerVisibility.routes ? "visible" : "none"); map.setLayoutProperty("route-labels", "visibility", layerVisibility.routes ? "visible" : "none"); }
       if (map.getLayer("evacuation-route")) { map.setLayoutProperty("evacuation-route", "visibility", layerVisibility.evacuation ? "visible" : "none"); map.setLayoutProperty("evacuation-route-outline", "visibility", layerVisibility.evacuation ? "visible" : "none"); }
+      if (map.getLayer("candidate-routes-dimmed")) { map.setLayoutProperty("candidate-routes-dimmed", "visibility", layerVisibility.candidateRoutes ? "visible" : "none"); map.setLayoutProperty("candidate-routes-selected", "visibility", layerVisibility.candidateRoutes ? "visible" : "none"); map.setLayoutProperty("candidate-routes-selected-outline", "visibility", layerVisibility.candidateRoutes ? "visible" : "none"); }
     }
   }, [layerVisibility]);
 
@@ -186,7 +283,26 @@ export function MapIntelligenceView({ onSiteSelect }: MapIntelligenceViewProps) 
     import("maplibre-gl").then((maplibregl) => {
       if (disposed || !mapContainerRef.current) return;
       const MapLibre = maplibregl.default;
-      const map = new MapLibre.Map({ container: mapContainerRef.current, style: { version: 8, sources: { osm: { type: "raster", tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"], tileSize: 256, attribution: "© OpenStreetMap contributors", maxzoom: 19 } }, layers: [{ id: "osm-base", type: "raster", source: "osm", minzoom: 0, maxzoom: 19 }] }, center: BARPETA_CENTER, zoom: 9.5, bounds: BARPETA_BOUNDS, attributionControl: false });
+      const map = new MapLibre.Map({ 
+        container: mapContainerRef.current, 
+        style: { 
+          version: 8, 
+          sources: { 
+            basemap: { 
+              type: "raster", 
+              tiles: BASEMAP_TILES, 
+              tileSize: 256, 
+              attribution: "© OpenStreetMap contributors, © CARTO", 
+              maxzoom: 19 
+            } 
+          }, 
+          layers: [{ id: "basemap", type: "raster", source: "basemap", minzoom: 0, maxzoom: 19 }] 
+        }, 
+        center: BARPETA_CENTER, 
+        zoom: 9.5, 
+        bounds: BARPETA_BOUNDS, 
+        attributionControl: false 
+      });
       map.addControl(new MapLibre.AttributionControl({ compact: true }), "bottom-right");
       map.addControl(new MapLibre.NavigationControl({ visualizePitch: true }), "top-right");
       map.addControl(new MapLibre.ScaleControl({ unit: "metric" }), "bottom-left");
@@ -197,6 +313,14 @@ export function MapIntelligenceView({ onSiteSelect }: MapIntelligenceViewProps) 
   }, []);
 
   const toggleLayer = (layer: keyof typeof layerVisibility) => { setLayerVisibility((prev) => ({ ...prev, [layer]: !prev[layer] })); };
+
+  const toggleFullscreen = () => { setIsFullscreen((prev) => !prev); };
+
+  const handleCandidateSelect = (candidate: RouteCandidate) => { 
+    setSelectedCandidate(candidate); 
+    const route = routes.find((r) => r.id === candidate.route_id);
+    setEvacuationRoute(route ?? null);
+  };
 
   const riskCounts = { RED_ZONE: riskAssessments.filter((r) => r.risk_level === "RED_ZONE").length, HIGH: riskAssessments.filter((r) => r.risk_level === "HIGH").length, MEDIUM: riskAssessments.filter((r) => r.risk_level === "MEDIUM").length, LOW: riskAssessments.filter((r) => r.risk_level === "LOW").length };
 
@@ -212,12 +336,25 @@ export function MapIntelligenceView({ onSiteSelect }: MapIntelligenceViewProps) 
 
   const feasibilityCardClass = routeFeasibility?.feasible ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50";
 
+  const containerStyle: React.CSSProperties = isFullscreen ? { 
+    position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999,
+    background: "#f8fafc"
+  } : {};
+
+  const mapContainerStyle: React.CSSProperties = isFullscreen ? { 
+    width: "100vw", height: "100vh", borderRadius: 0, border: "none"
+  } : { 
+    width: "100%", height: "100%", minHeight: "500px", borderRadius: "0.5rem", border: "1px solid #e2e8f0" 
+  };
+
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-slate-900">Map Intelligence</h2>
-        <div className="flex items-center gap-2 text-xs text-slate-500"><span className="w-2 h-2 rounded-full bg-green-500" /><span>Map Ready</span></div>
-      </div>
+    <div className="h-full flex flex-col" style={containerStyle}>
+      {!isFullscreen && (
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-slate-900">Map Intelligence</h2>
+          <div className="flex items-center gap-2 text-xs text-slate-500"><span className="w-2 h-2 rounded-full bg-green-500" /><span>Map Ready</span></div>
+        </div>
+      )}
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <span className="text-xs font-medium text-slate-600">Layers:</span>
@@ -225,11 +362,15 @@ export function MapIntelligenceView({ onSiteSelect }: MapIntelligenceViewProps) 
         <Button variant="ghost" size="sm" onClick={() => toggleLayer("sites")} className={getLayerButtonClass(layerVisibility.sites, "green")}>Sites</Button>
         <Button variant="ghost" size="sm" onClick={() => toggleLayer("routes")} className={getLayerButtonClass(layerVisibility.routes, "amber")}>Routes</Button>
         <Button variant="ghost" size="sm" onClick={() => toggleLayer("evacuation")} className={getLayerButtonClass(layerVisibility.evacuation, "cyan")}>Evacuation</Button>
+        <Button variant="ghost" size="sm" onClick={() => toggleLayer("candidateRoutes")} className={getLayerButtonClass(layerVisibility.candidateRoutes, "indigo")}>Candidates</Button>
         <Button variant="ghost" size="sm" onClick={() => setShowLegend(!showLegend)} className={legendButtonClass}>Legend</Button>
+        <Button variant="ghost" size="sm" onClick={toggleFullscreen} className="ml-auto">
+          {isFullscreen ? "⛶ Exit Fullscreen" : "⛶ Fullscreen"}
+        </Button>
       </div>
 
-      <div className="flex-1 relative">
-        <div ref={mapContainerRef} className="w-full h-full rounded-lg border border-slate-200 overflow-hidden" aria-label="Barpeta district disaster management map" />
+      <div className="flex-1 relative" style={isFullscreen ? { height: "calc(100vh - 120px)" } : {}}>
+        <div ref={mapContainerRef} style={mapContainerStyle} className="rounded-lg border border-slate-200 overflow-hidden" aria-label="Barpeta district disaster management map" />
 
         {showLegend && (
           <div className="absolute left-3 bottom-3 z-10 bg-white/95 backdrop-blur rounded-lg shadow-md border border-slate-200 p-3">
@@ -243,47 +384,142 @@ export function MapIntelligenceView({ onSiteSelect }: MapIntelligenceViewProps) 
               <div className="flex items-center gap-2"><span className="w-6 h-0.5" style={{ background: COLORS.routeOpen }} />Open Road</div>
               <div className="flex items-center gap-2"><span className="w-6 h-0.5" style={{ background: COLORS.routeClosed }} />Blocked Road</div>
               <div className="flex items-center gap-2"><span className="w-6 border-t-2 border-dashed" style={{ borderColor: COLORS.evacuation }} />Evacuation Route</div>
+              <div className="flex items-center gap-2"><span className="w-6 border-t-2 border-dashed" style={{ borderColor: COLORS.candidateRoute }} />Candidate Route</div>
+              <div className="flex items-center gap-2"><span className="w-6 h-1" style={{ background: COLORS.selectedRoute }} />Selected Route</div>
             </div>
           </div>
         )}
+
+        {selectedHabitation && routeCandidates.length > 0 && (
+          <div className="absolute top-3 right-3 z-10 bg-white/95 backdrop-blur rounded-lg shadow-md border border-slate-200 p-3 min-w-[280px] max-w-[350px]">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-sm font-semibold text-slate-900">Evacuation Routes for {selectedHabitation.name}</h4>
+              <button onClick={() => { setSelectedHabitation(null); setRouteCandidates([]); setSelectedCandidate(null); setEvacuationRoute(null); setRouteFeasibility(null); }} className="text-slate-400 hover:text-slate-600">×</button>
+            </div>
+            {isLoadingCandidates && (
+              <div className="flex items-center gap-2 text-blue-800"><span className="animate-spin">⟳</span><span className="font-medium text-sm">Loading routes...</span></div>
+            )}
+{!isLoadingCandidates && routeCandidates.length > 0 && (
+                <select
+                  value={selectedCandidate?.route_id ?? ""}
+                  onChange={(e) => { const c = routeCandidates.find((rc) => rc.route_id === e.target.value); if (c) handleCandidateSelect(c); }}
+                  className="w-full text-sm rounded-lg border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Select evacuation route...</option>
+                  {routeCandidates.map((c) => (
+                    <option key={c.route_id} value={c.route_id}>
+                      {c.route_name} → {c.site_name} ({c.distance_km} km, {c.travel_time_min} min) {c.is_recommended ? " ⭐" : ""}
+                    </option>
+                  ))}
+                </select>
+              )}
+            {!isLoadingCandidates && routeCandidates.length === 0 && (
+              <div className="text-sm text-slate-500">No feasible evacuation routes found</div>
+            )}
+          </div>
+        )}
+
+        {selectedSite && !selectedHabitation && (
+          <div className="absolute top-3 right-3 z-10 bg-white/95 backdrop-blur rounded-lg shadow-md border border-slate-200 p-3 min-w-[240px]">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-sm font-semibold text-slate-900">Site Details</h4>
+              <button onClick={() => { setSelectedSite(null); setEvacuationRoute(null); setRouteFeasibility(null); }} className="text-slate-400 hover:text-slate-600">×</button>
+            </div>
+            <div className="space-y-1 text-sm">
+              <div><span className="text-slate-500">Site:</span> <span className="font-semibold">{selectedSite.name}</span></div>
+              <div><span className="text-slate-500">Available:</span> <span className="font-semibold text-green-700">{selectedSite.available_capacity?.toLocaleString()}</span></div>
+              <div><span className="text-slate-500">Capacity:</span> <span className="font-semibold">{selectedSite.max_capacity?.toLocaleString()}</span></div>
+            </div>
+            {nearestHab && (
+              <div className="border-t border-slate-200 pt-2 mt-2">
+                <div className="text-xs font-medium text-slate-600">Nearest Habitation</div>
+                <button onClick={() => { setSelectedHabitation(nearestHab); setSelectedSite(null); }} className="w-full mt-1 text-sm text-left text-blue-600 hover:text-blue-800 underline">{nearestHab.name} ({nearestHab.population.toLocaleString()})</button>
+              </div>
+            )}
+          </div>
+        )}
+
       </div>
 
-      {selectedSite && (
-        <Card className="mt-4 p-4 space-y-3">
+      {(selectedSite || selectedHabitation) && (
+        <Card className={`mt-4 p-4 space-y-3 ${isFullscreen ? "fixed bottom-4 left-4 right-4 max-w-4xl mx-auto z-50 shadow-xl" : ""}`}>
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2"><span className="w-3 h-3 rounded-full" style={{ background: COLORS.site }} />{selectedSite.name}</h3>
-            <button onClick={() => { setSelectedSite(null); setEvacuationRoute(null); setRouteFeasibility(null); }} className="text-slate-400 hover:text-slate-600">×</button>
+            <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+              {selectedHabitation ? (
+                <>
+                  <span className="w-3 h-3 rounded-full" style={{ background: getHabitationRiskColor(selectedHabitation.id) }} />
+                  {selectedHabitation.name} ({selectedHabitation.population.toLocaleString()})
+                </>
+              ) : (
+                <>
+                  <span className="w-3 h-3 rounded-full" style={{ background: COLORS.site }} />
+                  {selectedSite!.name}
+                </>
+              )}
+            </h3>
+            <button onClick={() => { setSelectedSite(null); setSelectedHabitation(null); setEvacuationRoute(null); setRouteFeasibility(null); setRouteCandidates([]); setSelectedCandidate(null); }} className="text-slate-400 hover:text-slate-600">×</button>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div><span className="text-slate-500">Site ID:</span> <span className="font-mono text-slate-700">{selectedSite.id}</span></div>
-            <div><span className="text-slate-500">Max Capacity:</span> <span className="font-semibold text-slate-900">{selectedSite.max_capacity?.toLocaleString()}</span></div>
-            <div><span className="text-slate-500">Available Capacity:</span> <span className="font-semibold text-green-700">{selectedSite.available_capacity?.toLocaleString()}</span></div>
-            <div><span className="text-slate-500">Current Allocation:</span> <span className="font-semibold text-slate-700">{selectedSite.current_allocation?.toLocaleString()}</span></div>
-            <div><span className="text-slate-500">Suitability:</span> <span className="font-semibold text-slate-700">{(selectedSite.suitability_score * 100).toFixed(0)}%</span></div>
-            <div><span className="text-slate-500">Elevation:</span> <span className="font-semibold text-slate-700">{selectedSite.elevation_m}m</span></div>
-            <div><span className="text-slate-500">Flood Risk:</span> <span className="font-semibold text-slate-700 capitalize">{selectedSite.flood_risk}</span></div>
-            <div><span className="text-slate-500">Infrastructure Ready:</span> <span className="font-semibold">{selectedSite.infrastructure_ready ? "Yes" : "No"}</span></div>
-            <div><span className="text-slate-500">Water:</span> <span className="font-semibold">{selectedSite.water_available ? "Yes" : "No"}</span></div>
-            <div><span className="text-slate-500">Power:</span> <span className="font-semibold">{selectedSite.power_available ? "Yes" : "No"}</span></div>
-            <div><span className="text-slate-500">Road Access:</span> <span className="font-semibold">{selectedSite.road_access ? "Yes" : "No"}</span></div>
-          </div>
-
-          {nearestHab && (
-            <div className="border-t border-slate-200 pt-3">
-              <h4 className="text-sm font-semibold text-slate-900 mb-2">Nearest Affected Habitation</h4>
-              <div className="space-y-1 text-sm">
-                <div><span className="text-slate-500">Habitation:</span> <span className="font-semibold">{nearestHab.name}</span></div>
-                <div><span className="text-slate-500">Population:</span> <span className="font-semibold">{nearestHab.population.toLocaleString()}</span></div>
-                <div><span className="text-slate-500">Risk Level:</span> <span className="font-semibold px-2 py-0.5 rounded text-xs" style={{ backgroundColor: `${getHabitationRiskColor(nearestHab.id)}20`, color: getHabitationRiskColor(nearestHab.id) }}>{RISK_LABELS[getHabitationRiskLevel(nearestHab.id)]}</span></div>
-                <div><span className="text-slate-500">Priority Rank:</span> <span className="font-semibold">{nearestHab.priority_rank ?? "—"}</span></div>
+          {selectedHabitation && (
+            <div className="space-y-2 text-sm">
+              <div className="grid grid-cols-2 gap-2">
+                <div><span className="text-slate-500">Habitation ID:</span> <span className="font-mono text-slate-700">{selectedHabitation.id}</span></div>
+                <div><span className="text-slate-500">Population:</span> <span className="font-semibold text-slate-900">{selectedHabitation.population.toLocaleString()}</span></div>
+                <div><span className="text-slate-500">Vulnerability:</span> <span className="font-semibold text-slate-700">{(selectedHabitation.vulnerability_score * 100).toFixed(0)}%</span></div>
+                <div><span className="text-slate-500">Risk Level:</span> <span className="font-semibold px-2 py-0.5 rounded text-xs" style={{ backgroundColor: `${getHabitationRiskColor(selectedHabitation.id)}20`, color: getHabitationRiskColor(selectedHabitation.id) }}>{RISK_LABELS[getHabitationRiskLevel(selectedHabitation.id)]}</span></div>
+                <div><span className="text-slate-500">Priority Rank:</span> <span className="font-semibold">{selectedHabitation.priority_rank ?? "—"}</span></div>
+                <div><span className="text-slate-500">Accessible:</span> <span className="font-semibold">{selectedHabitation.is_accessible ? "Yes" : "No"}</span></div>
               </div>
+              {routeCandidates.length > 1 && (
+                <div className="border-t border-slate-200 pt-2">
+                  <div className="text-xs font-medium text-slate-600 mb-1">{routeCandidates.length} Candidate Routes Available</div>
+                  <div className="space-y-1 max-h-40 overflow-y-auto">
+                    {routeCandidates.map((c) => (
+                      <button
+                        key={c.route_id}
+                        onClick={() => handleCandidateSelect(c)}
+                        className={`w-full text-left p-2 rounded text-xs border ${c.route_id === selectedCandidate?.route_id ? "bg-blue-50 border-blue-300" : "bg-white border-slate-200 hover:bg-slate-50"}`}
+                      >
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium">{c.route_name}</span>
+                          {c.is_recommended && <Badge variant="info" className="text-[10px]">Best</Badge>}
+                        </div>
+                        <div className="flex items-center gap-1 text-slate-500">
+                          <span>→ {c.site_name}</span>
+                          <span className="text-[10px]">•</span>
+                          <span className="text-[10px]">{c.distance_km} km</span>
+                          <span className="text-[10px]">•</span>
+                          <span className="text-[10px]">{c.travel_time_min} min</span>
+                          <span className="text-[10px]">•</span>
+                          <Badge variant={c.status === "open" ? "default" : "danger"} className="text-[10px] capitalize">{c.status}</Badge>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {selectedSite && !selectedHabitation && (
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div><span className="text-slate-500">Site ID:</span> <span className="font-mono text-slate-700">{selectedSite.id}</span></div>
+              <div><span className="text-slate-500">Max Capacity:</span> <span className="font-semibold text-slate-900">{selectedSite.max_capacity?.toLocaleString()}</span></div>
+              <div><span className="text-slate-500">Available Capacity:</span> <span className="font-semibold text-green-700">{selectedSite.available_capacity?.toLocaleString()}</span></div>
+              <div><span className="text-slate-500">Current Allocation:</span> <span className="font-semibold text-slate-700">{selectedSite.current_allocation?.toLocaleString()}</span></div>
+              <div><span className="text-slate-500">Suitability:</span> <span className="font-semibold text-slate-700">{(selectedSite.suitability_score * 100).toFixed(0)}%</span></div>
+              <div><span className="text-slate-500">Elevation:</span> <span className="font-semibold text-slate-700">{selectedSite.elevation_m}m</span></div>
+              <div><span className="text-slate-500">Flood Risk:</span> <span className="font-semibold text-slate-700 capitalize">{selectedSite.flood_risk}</span></div>
+              <div><span className="text-slate-500">Infrastructure Ready:</span> <span className="font-semibold">{selectedSite.infrastructure_ready ? "Yes" : "No"}</span></div>
+              <div><span className="text-slate-500">Water:</span> <span className="font-semibold">{selectedSite.water_available ? "Yes" : "No"}</span></div>
+              <div><span className="text-slate-500">Power:</span> <span className="font-semibold">{selectedSite.power_available ? "Yes" : "No"}</span></div>
+              <div><span className="text-slate-500">Road Access:</span> <span className="font-semibold">{selectedSite.road_access ? "Yes" : "No"}</span></div>
             </div>
           )}
 
           {evacuationRoute && (
             <div className="border-t border-slate-200 pt-3">
-              <h4 className="text-sm font-semibold text-slate-900 mb-2">Evacuation Route (Actual Network Path)</h4>
+              <h4 className="text-sm font-semibold text-slate-900 mb-2">Selected Route</h4>
               <div className="space-y-1 text-sm">
                 <div><span className="text-slate-500">Route:</span> <span className="font-semibold">{evacuationRoute.name}</span></div>
                 <div><span className="text-slate-500">Status:</span> <span className={`font-semibold ${routeStatusClass}`}>{evacuationRoute.status}</span></div>
@@ -304,7 +540,7 @@ export function MapIntelligenceView({ onSiteSelect }: MapIntelligenceViewProps) 
             </Card>
           )}
 
-          {selectedSite && !evacuationRoute && !feasibilityLoading && (
+          {selectedSite && !evacuationRoute && !feasibilityLoading && !selectedHabitation && (
             <Card variant="outlined" className="p-3 border-amber-200 bg-amber-50"><div className="flex items-center gap-2 text-amber-800"><span>⚠️</span><span className="font-medium">Click a site to check feasible evacuation routes from nearest affected habitation</span></div></Card>
           )}
 

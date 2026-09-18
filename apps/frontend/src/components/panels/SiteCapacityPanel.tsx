@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useSiteCapacities } from "@/hooks/useApi";
-import { Button, Badge, Card, Input, Select } from "@/components/ui";
+import { Button, Badge, Card, Input } from "@/components/ui";
 
 function getUtilizationColor(allocated: number, max: number) {
   if (max <= 0) return "bg-slate-400";
@@ -336,22 +336,23 @@ export function SiteCapacityPanel() {
 
         <div className="space-y-4">
           <div>
-            <Select
-              label="Select relocation site"
+            <label className="block text-xs font-medium text-slate-700 mb-1.5">Select relocation site</label>
+            <select
               value={selectedSiteId}
               onChange={(e) => {
                 setSelectedSiteId(e.target.value);
                 setSimulation(null);
                 setAcceptedRecommendation(null);
               }}
-              options={[
-                { value: "", label: "Select a site..." },
-                ...siteCapacities.map((site: any) => ({
-                  value: site.site_id,
-                  label: `${site.site_name} (${Number(site.remaining_capacity ?? 0).toLocaleString()} remaining)`,
-                })),
-              ]}
-            />
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">Select a site...</option>
+              {siteCapacities.map((site: any) => (
+                <option key={site.site_id} value={site.site_id}>
+                  {site.site_name} ({Number(site.remaining_capacity ?? 0).toLocaleString()} remaining)
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>

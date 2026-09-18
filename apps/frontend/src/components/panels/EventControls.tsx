@@ -7,7 +7,7 @@ import {
   useSMSLog,
 } from "@/hooks/useApi";
 import { Loader2, Zap, AlertTriangle, AlertCircle, CheckCircle } from "lucide-react";
-import { Button, Badge, Card, Select, Input } from "@/components/ui";
+import { Button, Badge, Card, Input } from "@/components/ui";
 
 type EventType = "bridge_collapse" | "capacity_reduction" | "rainfall" | "combined";
 
@@ -184,11 +184,15 @@ export function EventControls({ onEventTriggered }: EventControlsProps) {
         {eventType === "bridge_collapse" && (
           <Card variant="outlined" className="p-4 space-y-3 border-red-200 bg-red-50">
             <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Select bridge to collapse</label>
-            <Select
+            <select
               value={bridgeId}
               onChange={(e) => setBridgeId(e.target.value)}
-              options={availableBridges.map((b) => ({ value: b.id, label: b.name }))}
-            />
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              {availableBridges.map((b) => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
             <div className="card p-3 space-y-1 border-red-100 bg-red-50">
               <div className="flex items-center gap-2 text-xs">
                 <span className="text-slate-500">Target site:</span>
@@ -280,7 +284,15 @@ export function EventControls({ onEventTriggered }: EventControlsProps) {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-slate-500 mb-1">Bridge</label>
-                <Select value={bridgeId} onChange={(e) => setBridgeId(e.target.value)} options={availableBridges.map((b) => ({ value: b.id, label: b.name }))} />
+                <select
+                  value={bridgeId}
+                  onChange={(e) => setBridgeId(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                >
+                  {availableBridges.map((b) => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-500 mb-1">Rainfall intensity</label>

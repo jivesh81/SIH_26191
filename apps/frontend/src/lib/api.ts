@@ -66,6 +66,28 @@ export interface Route {
   properties?: Record<string, any>;
 }
 
+export interface RouteCandidate {
+  route_id: string;
+  route_name: string;
+  route_type: string;
+  site_id: string;
+  site_name: string;
+  distance_km: number;
+  travel_time_min: number;
+  status: string;
+  capacity_per_hour: number;
+  geometry?: any;
+  rank_score: number;
+  is_recommended: boolean;
+}
+
+export interface RouteCandidatesResponse {
+  habitation_id: string;
+  habitation_name: string;
+  candidates: RouteCandidate[];
+  total: number;
+}
+
 export interface RouteFeasibility {
   habitation_id: string;
   site_id: string;
@@ -882,6 +904,16 @@ export async function checkAllRoutesToSite(siteId: string) {
 
 export async function getAllRouteFeasibility() {
   return api.feasibility.all();
+}
+
+// =============================================================================
+// Route Candidates
+// =============================================================================
+
+export async function getRouteCandidates(habitationId: string) {
+  return fetchJson<RouteCandidatesResponse>(
+    `/intelligence/route/candidates/${habitationId}`,
+  );
 }
 
 // =============================================================================

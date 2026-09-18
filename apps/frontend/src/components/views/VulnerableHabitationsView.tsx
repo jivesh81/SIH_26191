@@ -4,7 +4,7 @@ import { useHabitations, Habitation } from "@/hooks/useApi";
 import { RiskLevel } from "@/lib/api";
 import { useState, useMemo } from "react";
 import { useMapState } from "@/context/MapStateContext";
-import { Card, Badge, DataTable, Input, Select, Button } from "@/components/ui";
+import { Card, Badge, DataTable, Input, Button } from "@/components/ui";
 
 const RISK_COLORS: Record<string, string> = { [RiskLevel.RED_ZONE]: "#991b1b", [RiskLevel.HIGH]: "#dc2626", [RiskLevel.MEDIUM]: "#f97316", [RiskLevel.LOW]: "#16a34a" };
 const RISK_LABELS: Record<string, string> = { [RiskLevel.RED_ZONE]: "RED ZONE", [RiskLevel.HIGH]: "HIGH", [RiskLevel.MEDIUM]: "MEDIUM", [RiskLevel.LOW]: "LOW" };
@@ -119,13 +119,17 @@ export function VulnerableHabitationsView() {
           <Input label="Search habitations..." placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} leftIcon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>} className="max-w-md flex-1" />
           <div className="flex items-center gap-3">
             <span className="text-xs text-slate-500">{filteredAndSortedHabitations.length} of {habitations.length} habitations</span>
-            <Select value={sortConfig.key} onChange={(e) => setSortConfig({ key: e.target.value as SortKey, direction: "asc" })} options={[
-              { value: "priority_rank", label: "Priority Rank" },
-              { value: "name", label: "Name" },
-              { value: "population", label: "Population" },
-              { value: "vulnerability_score", label: "Vulnerability Score" },
-              { value: "risk_level", label: "Risk Level" },
-            ]} className="min-w-[160px]" />
+            <select
+              value={sortConfig.key}
+              onChange={(e) => setSortConfig({ key: e.target.value as SortKey, direction: "asc" })}
+              className="min-w-[160px] rounded-lg border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+            >
+              <option value="priority_rank">Priority Rank</option>
+              <option value="name">Name</option>
+              <option value="population">Population</option>
+              <option value="vulnerability_score">Vulnerability Score</option>
+              <option value="risk_level">Risk Level</option>
+            </select>
             <Button variant="ghost" size="icon" onClick={() => setSortConfig((prev) => ({ ...prev, direction: prev.direction === "asc" ? "desc" : "asc" }))} aria-label={sortConfig.direction === "asc" ? "Sort descending" : "Sort ascending"}><svg className={`w-5 h-5 ${sortConfig.direction === "desc" ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" /></svg></Button>
           </div>
         </div>

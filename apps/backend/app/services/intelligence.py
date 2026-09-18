@@ -9,7 +9,7 @@ Deterministic calculations for:
 Uses synthetic/demo data only - NOT official government data.
 """
 
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional, Tuple, NamedTuple
 from functools import lru_cache
 
 from app.services.data_layer import (
@@ -36,6 +36,7 @@ from app.schemas.domain import (
     CapacityConstraintResponse,
     RouteFeasibilityResponse,
     FloodRiskLevel,
+    RouteStatus,
 )
 
 
@@ -372,12 +373,39 @@ def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
 
 
 def _get_coords_from_geometry(geometry: Optional[Dict[str, Any]]) -> Optional[Tuple[float, float]]:
-    """Extract (lat, lon) from GeoJSON geometry."""
-    if not geometry or geometry.get("type") != "Point":
+    """Extract (lat, lon) from GeoJSON geometry (Point or Polygon centroid)."""
+    if not geometry:
         return None
+    
+    geom_type = geometry.get("type")
     coords = geometry.get("coordinates", [])
-    if len(coords) >= 2:
-        return (coords[1], coords[0])  # GeoJSON is [lon, lat]
+    
+    if geom_type == "Point":
+        if len(coords) >= 2:
+            return (coords[1], coords[0])  # GeoJSON is [lon, lat]
+    
+    elif geom_type == "Polygon":
+        # Calculate centroid of polygon (approximate using first ring)
+        if coords and coords[0]:
+            ring = coords[0]  # First ring (exterior)
+            if len(ring) >= 3:
+                lngs = [p[0] for p in ring]
+                lats = [p[1] for p in ring]
+                centroid_lng = sum(lngs) / len(lngs)
+                centroid_lat = sum(lats) / len(lats)
+                return (centroid_lat, centroid_lng)
+    
+    elif geom_type == "MultiPolygon":
+        # Use first polygon's centroid
+        if coords and coords[0] and coords[0][0]:
+            ring = coords[0][0]
+            if len(ring) >= 3:
+                lngs = [p[0] for p in ring]
+                lats = [p[1] for p in ring]
+                centroid_lng = sum(lngs) / len(lngs)
+                centroid_lat = sum(lats) / len(lats)
+                return (centroid_lat, centroid_lng)
+    
     return None
 
 
@@ -533,3 +561,169 @@ def check_all_routes_from_habitation(habitation_id: str) -> List[RouteFeasibilit
     """Check feasibility from a habitation to all sites."""
     sites = get_sites()
     return [check_route_feasibility(habitation_id, s.id) for s in sites]
+
+
+# =============================================================================
+# Route Candidates (for multi-route selection UI)
+# =============================================================================
+
+class RouteCandidate(NamedTuple):
+    """A candidate evacuation route from habitation to site."""
+    route_id: str
+    route_name: str
+    route_type: str
+    site_id: str
+    site_name: str
+    distance_km: float
+    travel_time_min: float
+    status: RouteStatus
+    capacity_per_hour: int
+    geometry: Optional[Dict[str, Any]]
+    rank_score: float
+    is_recommended: bool = False
+
+
+def get_route_candidates(habitation_id: str) -> List[Dict[str, Any]]:
+    """
+    Get all geographically reachable routes from a habitation to any open site.
+    
+    Returns routes ranked by a combination of:
+    - distance (shorter is better)
+    - travel_time_min (shorter is better)  
+    - route status (open > congested > impassable)
+    - route_type (primary > alternative > contingency)
+    
+    Includes:
+    1. The habitation's designated evacuation route (if open)
+    2. All open routes whose start is near the habitation (within 5km)
+    3. For each route, pairs with the closest open site to the route's end point
+    """
+    habitation = get_habitation_by_id(habitation_id)
+    if not habitation:
+        return []
+    
+    sites = get_sites()
+    routes = get_routes()
+    
+    # Get open sites only
+    open_sites = [s for s in sites if s.available_capacity > 0]
+    if not open_sites:
+        return []
+    
+    hab_coords = _get_coords_from_geometry(habitation.geometry)
+    if not hab_coords:
+        return []
+    
+    candidates = []
+    PROXIMITY_THRESHOLD_KM = 10.0
+    MAX_DISTANCE_KM = 50.0
+    
+    # Check infrastructure for collapsed bridges
+    infrastructure = get_infrastructure()
+    bridge_status = {i.id: i.condition for i in infrastructure if i.infra_type == "bridge"}
+    
+    # Track best site per route to avoid duplicates
+    route_best_site = {}
+    
+    for route in routes:
+        if route.status != "open":
+            continue
+        
+        # Skip routes with collapsed bridges
+        collapsed_bridges = [b for b in route.bridge_dependencies if bridge_status.get(b) == "collapsed"]
+        if collapsed_bridges:
+            continue
+        
+        route_coords = route.geometry.get("coordinates", []) if route.geometry else []
+        if not route_coords:
+            continue
+        
+        route_start = route_coords[0]
+        route_end = route_coords[-1]
+        
+        # Check if route start is near habitation
+        hab_to_route_start = _haversine_km(hab_coords[0], hab_coords[1], route_start[1], route_start[0])
+        
+        # Include if:
+        # 1. Route start is near habitation (within 5km)
+        # 2. OR it's the habitation's designated evacuation route
+        is_designated = route.id == habitation.evacuation_route_id
+        is_proximate = hab_to_route_start < PROXIMITY_THRESHOLD_KM
+        
+        if not (is_designated or is_proximate):
+            continue
+        
+        # Find the closest site to the route end
+        best_site = None
+        best_site_dist = float('inf')
+        
+        for site in open_sites:
+            site_coords = _get_coords_from_geometry(site.geometry)
+            if not site_coords:
+                continue
+            
+            route_end_to_site = _haversine_km(route_end[1], route_end[0], site_coords[0], site_coords[1])
+            
+            if route_end_to_site < best_site_dist:
+                best_site_dist = route_end_to_site
+                best_site = site
+        
+        if not best_site:
+            continue
+        
+        route_best_site[route.id] = best_site
+    
+    # Now build candidates from unique routes
+    for route_id, best_site in route_best_site.items():
+        route = get_route_by_id(route_id)
+        if not route:
+            continue
+        
+        # Check total distance (habitation to site via route)
+        site_coords = _get_coords_from_geometry(best_site.geometry)
+        if not site_coords:
+            continue
+            
+        straight_distance = _haversine_km(hab_coords[0], hab_coords[1], site_coords[0], site_coords[1])
+        
+        if straight_distance > MAX_DISTANCE_KM:
+            continue
+        
+        # Calculate rank score (lower is better)
+        distance_score = route.length_km / 50.0  # normalize to 0-1
+        time_score = route.travel_time_min / 60.0  # normalize
+        
+        # Status penalty
+        status_score = 0.0 if route.status == "open" else (0.3 if route.status == "congested" else 1.0)
+        
+        # Route type preference
+        type_score = {"primary": 0.0, "alternative": 0.1, "contingency": 0.2}.get(route.route_type, 0.2)
+        
+        # Proximity bonus for designated route
+        designated_bonus = -0.1 if route.id == habitation.evacuation_route_id else 0.0
+        
+        rank_score = distance_score * 0.4 + time_score * 0.3 + status_score * 0.2 + type_score * 0.1 + designated_bonus
+        
+        candidates.append({
+            "route_id": route.id,
+            "route_name": route.name,
+            "route_type": route.route_type,
+            "site_id": best_site.id,
+            "site_name": best_site.name,
+            "distance_km": round(route.length_km, 1),
+            "travel_time_min": round(route.travel_time_min, 1),
+            "status": route.status,
+            "capacity_per_hour": route.capacity_per_hour,
+            "geometry": route.geometry,
+            "rank_score": round(rank_score, 3),
+            "is_recommended": False,  # Will be set after sorting
+        })
+    
+    # Sort by rank score (best first)
+    candidates.sort(key=lambda c: c["rank_score"])
+    
+    # Mark best as recommended
+    if candidates:
+        candidates[0]["is_recommended"] = True
+    
+    return candidates

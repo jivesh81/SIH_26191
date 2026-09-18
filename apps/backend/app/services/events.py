@@ -20,7 +20,10 @@ from app.services.data_layer import (
     InfrastructureResponse,
 )
 from app.services.optimization import run_relocation_optimization
-from app.services.intelligence import get_all_effective_capacities
+from app.services.intelligence import (
+    get_all_effective_capacities,
+    get_all_effective_capacities as get_all_effective_capacities_fn,
+)
 from app.schemas.domain import (
     EventType,
     OptimizationStatus,
@@ -94,7 +97,10 @@ class EventService:
         # Get routes that use this bridge
         affected_routes = self._find_routes_using_bridge(bridge_id)
         
-        # In a real system, we'd persist this. For demo, we track it.
+        # Mutate affected routes in place (lru_cache'd objects persist across calls)
+        for route in affected_routes:
+            route.status = RouteStatus.IMPASSABLE
+        
         affected_route_ids = [r.id for r in affected_routes]
         
         # Also mark the bridge as collapsed in infrastructure
@@ -137,6 +143,15 @@ class EventService:
                     affected_sites.append("site_003")
         
         affected_sites = list(set(affected_sites))
+        
+        # Mutate affected sites in place (lru_cache'd objects persist across calls)
+        for site_id in affected_sites:
+            site = site_map.get(site_id)
+            if site:
+                site.max_capacity = int(site.max_capacity * (1 - reduction_pct / 100))
+        
+        # Clear effective capacity cache since site capacities changed
+        get_all_effective_capacities_fn.cache_clear()
         
         return {
             "type": "capacity_reduction",

@@ -8,7 +8,7 @@ import {
   useActivePlan,
 } from "@/hooks/useApi";
 import { AlertTriangle, AlertCircle, CheckCircle, Loader2, Zap } from "lucide-react";
-import { Button, Badge, Card, Select, Input } from "@/components/ui";
+import { Button, Badge, Card, Input } from "@/components/ui";
 
 type EventType = "bridge_collapse" | "capacity_reduction";
 
@@ -169,7 +169,15 @@ export function DisasterSimulationView() {
           {eventType === "bridge_collapse" && (
             <Card variant="outlined" className="p-3 space-y-2 border-red-200 bg-red-50">
               <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Access route to close</label>
-              <Select value={bridgeId} onChange={(e) => setBridgeId(e.target.value)} options={availableBridges.map((b) => ({ value: b.id, label: b.name }))} />
+              <select
+                value={bridgeId}
+                onChange={(e) => setBridgeId(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                {availableBridges.map((b) => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
               <div className="text-xs text-slate-500 space-y-1">
                 <div>Target site: <span className="font-medium text-slate-700">{selectedBridge?.targetSite ?? "SITE_001"}</span></div>
                 <div>Affected routes: <span className="font-medium text-slate-700">{selectedBridge?.routes.join(", ")}</span></div>
