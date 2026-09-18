@@ -28,6 +28,16 @@ from app.services.data_layer import (
     InfrastructureResponse,
 )
 
+from app.services.gis_engine import (
+    distance_km,
+    lnglat_to_point,
+    build_road_network,
+    RoadNetworkGraph,
+    assess_route_feasibility,
+    haversine_km,
+    Point,
+)
+
 from app.schemas.domain import (
     RiskLevel,
     RiskFactors,
@@ -355,25 +365,32 @@ def get_effective_capacity(site_id: str) -> Optional[EffectiveCapacityResponse]:
 # Route Feasibility
 # =============================================================================
 
-def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    """Calculate distance between two points in km (haversine formula)."""
-    from math import radians, sin, cos, sqrt, atan2
-    
-    R = 6371.0  # Earth radius in km
-    
-    lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
-    
-    dlat = lat2 - lat1
-    dlon = lon2 - lon1
-    
-    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
-    c = 2 * atan2(sqrt(a), sqrt(1-a))
-    
-    return R * c
+# Module-level road network graph (built once)
+_road_network: Optional[RoadNetworkGraph] = None
 
 
-def _get_coords_from_geometry(geometry: Optional[Dict[str, Any]]) -> Optional[Tuple[float, float]]:
-    """Extract (lat, lon) from GeoJSON geometry (Point or Polygon centroid)."""
+def _get_road_network() -> RoadNetworkGraph:
+    """Get or build the road network graph."""
+    global _road_network
+    if _road_network is None:
+        roads = get_routes()  # Using evacuation routes as road network
+        _road_network = build_road_network([
+            {
+                "id": r.id,
+                "geometry": r.geometry,
+                "properties": {
+                    "road_type": r.route_type,
+                    "name": r.name,
+                }
+            }
+            for r in roads
+            if r.geometry and r.geometry.get("type") == "LineString"
+        ])
+    return _road_network
+
+
+def _get_coords_from_geometry(geometry: Optional[Dict[str, Any]]) -> Optional[Point]:
+    """Extract Shapely Point from GeoJSON geometry (Point or Polygon centroid)."""
     if not geometry:
         return None
     
@@ -382,21 +399,20 @@ def _get_coords_from_geometry(geometry: Optional[Dict[str, Any]]) -> Optional[Tu
     
     if geom_type == "Point":
         if len(coords) >= 2:
-            return (coords[1], coords[0])  # GeoJSON is [lon, lat]
+            return lnglat_to_point(coords[0], coords[1])
     
     elif geom_type == "Polygon":
-        # Calculate centroid of polygon (approximate using first ring)
         if coords and coords[0]:
-            ring = coords[0]  # First ring (exterior)
+            ring = coords[0]
             if len(ring) >= 3:
+                # Calculate centroid
                 lngs = [p[0] for p in ring]
                 lats = [p[1] for p in ring]
                 centroid_lng = sum(lngs) / len(lngs)
                 centroid_lat = sum(lats) / len(lats)
-                return (centroid_lat, centroid_lng)
+                return lnglat_to_point(centroid_lng, centroid_lat)
     
     elif geom_type == "MultiPolygon":
-        # Use first polygon's centroid
         if coords and coords[0] and coords[0][0]:
             ring = coords[0][0]
             if len(ring) >= 3:
@@ -404,7 +420,7 @@ def _get_coords_from_geometry(geometry: Optional[Dict[str, Any]]) -> Optional[Tu
                 lats = [p[1] for p in ring]
                 centroid_lng = sum(lngs) / len(lngs)
                 centroid_lat = sum(lats) / len(lats)
-                return (centroid_lat, centroid_lng)
+                return lnglat_to_point(centroid_lng, centroid_lat)
     
     return None
 
@@ -413,11 +429,8 @@ def check_route_feasibility(habitation_id: str, site_id: str) -> RouteFeasibilit
     """
     Check if a route from habitation to site is feasible.
     
-    Simple deterministic logic:
-    1. Find direct route if exists (matching route_id from habitation)
-    2. Otherwise calculate straight-line distance
-    3. Check if route is open and has no critical bottlenecks
-    4. Max distance threshold: 50km
+    Uses road network graph for accurate distance/travel time calculation.
+    Falls back to straight-line distance if network unavailable.
     """
     habitation = get_habitation_by_id(habitation_id)
     site = get_site_by_id(site_id)
@@ -448,13 +461,30 @@ def check_route_feasibility(habitation_id: str, site_id: str) -> RouteFeasibilit
     if route_id:
         route = get_route_by_id(route_id)
     
-    # Calculate straight-line distance as fallback
-    hab_coords = _get_coords_from_geometry(habitation.geometry)
-    site_coords = _get_coords_from_geometry(site.geometry)
+    # Get coordinates as Shapely Points
+    hab_point = _get_coords_from_geometry(habitation.geometry)
+    site_point = _get_coords_from_geometry(site.geometry)
     
+    # Calculate straight-line distance as fallback
     straight_distance = None
-    if hab_coords and site_coords:
-        straight_distance = _haversine_km(hab_coords[0], hab_coords[1], site_coords[0], site_coords[1])
+    if hab_point and site_point:
+        straight_distance = distance_km(hab_point, site_point)
+    
+    # Try to use road network for accurate routing
+    network_distance = None
+    network_time = None
+    network_geometry = None
+    
+    try:
+        network = _get_road_network()
+        if hab_point and site_point:
+            path = network.shortest_path(hab_point, site_point, weight="travel_time")
+            if path:
+                network_distance = path["distance_km"]
+                network_time = path["travel_time_min"]
+                network_geometry = path["geometry"]
+    except Exception:
+        pass  # Fall back to straight-line or route data
     
     # Determine feasibility
     MAX_DISTANCE_KM = 50.0
@@ -517,28 +547,38 @@ def check_route_feasibility(habitation_id: str, site_id: str) -> RouteFeasibilit
             bottlenecks=bottlenecks,
         )
     
-    # Fallback: straight-line distance
-    if straight_distance is not None:
-        if straight_distance > MAX_DISTANCE_KM:
-            return RouteFeasibilityResponse(
-                habitation_id=habitation_id,
-                site_id=site_id,
-                feasible=False,
-                distance_km=round(straight_distance, 1),
-                travel_time_min=None,
-                reason=f"Straight-line distance {straight_distance:.1f}km exceeds max {MAX_DISTANCE_KM}km",
-            )
-        
-        # Estimate travel time (assume 40 km/h average)
-        est_time = round(straight_distance / 40.0 * 60, 1)
-        
+    # Use network distance if available, otherwise straight-line
+    if network_distance is not None:
+        distance = network_distance
+        travel_time = network_time
+        reason_suffix = "via road network"
+    elif straight_distance is not None:
+        distance = straight_distance
+        travel_time = round(straight_distance / 40.0 * 60, 1) if straight_distance else None
+        reason_suffix = "via direct path (estimated)"
+    else:
+        distance = None
+        travel_time = None
+        reason_suffix = "unknown distance"
+    
+    if distance is not None and distance > MAX_DISTANCE_KM:
+        return RouteFeasibilityResponse(
+            habitation_id=habitation_id,
+            site_id=site_id,
+            feasible=False,
+            distance_km=round(distance, 1),
+            travel_time_min=travel_time,
+            reason=f"Distance {distance:.1f}km exceeds max {MAX_DISTANCE_KM}km ({reason_suffix})",
+        )
+    
+    if distance is not None:
         return RouteFeasibilityResponse(
             habitation_id=habitation_id,
             site_id=site_id,
             feasible=True,
-            distance_km=round(straight_distance, 1),
-            travel_time_min=est_time,
-            reason=f"Direct path feasible (estimated {straight_distance:.1f}km, {est_time}min)",
+            distance_km=round(distance, 1),
+            travel_time_min=travel_time,
+            reason=f"Direct path feasible ({distance:.1f}km, {travel_time}min {reason_suffix})",
         )
     
     return RouteFeasibilityResponse(
@@ -610,9 +650,12 @@ def get_route_candidates(habitation_id: str) -> List[Dict[str, Any]]:
     if not open_sites:
         return []
     
-    hab_coords = _get_coords_from_geometry(habitation.geometry)
-    if not hab_coords:
+    hab_point = _get_coords_from_geometry(habitation.geometry)
+    if not hab_point:
         return []
+    
+    hab_lat = hab_point.y
+    hab_lng = hab_point.x
     
     candidates = []
     PROXIMITY_THRESHOLD_KM = 10.0
@@ -642,7 +685,7 @@ def get_route_candidates(habitation_id: str) -> List[Dict[str, Any]]:
         route_end = route_coords[-1]
         
         # Check if route start is near habitation
-        hab_to_route_start = _haversine_km(hab_coords[0], hab_coords[1], route_start[1], route_start[0])
+        hab_to_route_start = haversine_km(hab_lat, hab_lng, route_start[1], route_start[0])
         
         # Include if:
         # 1. Route start is near habitation (within 5km)
@@ -658,11 +701,14 @@ def get_route_candidates(habitation_id: str) -> List[Dict[str, Any]]:
         best_site_dist = float('inf')
         
         for site in open_sites:
-            site_coords = _get_coords_from_geometry(site.geometry)
-            if not site_coords:
+            site_point = _get_coords_from_geometry(site.geometry)
+            if not site_point:
                 continue
             
-            route_end_to_site = _haversine_km(route_end[1], route_end[0], site_coords[0], site_coords[1])
+            site_lat = site_point.y
+            site_lng = site_point.x
+            
+            route_end_to_site = haversine_km(route_end[1], route_end[0], site_lat, site_lng)
             
             if route_end_to_site < best_site_dist:
                 best_site_dist = route_end_to_site
@@ -680,11 +726,14 @@ def get_route_candidates(habitation_id: str) -> List[Dict[str, Any]]:
             continue
         
         # Check total distance (habitation to site via route)
-        site_coords = _get_coords_from_geometry(best_site.geometry)
-        if not site_coords:
+        site_point = _get_coords_from_geometry(best_site.geometry)
+        if not site_point:
             continue
             
-        straight_distance = _haversine_km(hab_coords[0], hab_coords[1], site_coords[0], site_coords[1])
+        site_lat = site_point.y
+        site_lng = site_point.x
+        
+        straight_distance = haversine_km(hab_lat, hab_lng, site_lat, site_lng)
         
         if straight_distance > MAX_DISTANCE_KM:
             continue

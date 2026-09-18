@@ -41,6 +41,10 @@ from app.schemas.domain import (
     SMSLogResponse,
     PlanApprovalRequest,
     PlanApprovalResponse,
+    DataProvenanceResponse,
+    DataProvenance,
+    WhatIfSimulationRequest,
+    WhatIfSimulationResult,
 )
 
 from app.services.data_layer import (
@@ -78,7 +82,7 @@ from app.services.intelligence import (
 from app.ml.risk_predictor import get_predictor, predict_risk_score
 from app.services.sms import get_sms_service
 
-from app.services.optimization import run_relocation_optimization
+from app.services.optimization import run_relocation_optimization, run_what_if_simulation
 from app.services.events import event_service, EventService
 
 router = APIRouter()
@@ -101,6 +105,99 @@ async def health_check():
         "version": "0.1.0",
         "data_mode": "local_synthetic_demo",
     }
+
+
+# =============================================================================
+# Data Provenance
+# =============================================================================
+
+@router.get(
+    "/data/provenance",
+    response_model=DataProvenanceResponse,
+    tags=["Data Provenance"],
+    summary="Get data provenance for all datasets",
+    description=(
+        "Returns provenance metadata for all datasets including source, "
+        "data type (real/synthetic/derived), last updated, confidence score, "
+        "and explicit disclaimer that this is NOT official CWC/ASDMA/NDMA data."
+    ),
+)
+async def get_data_provenance():
+    """Get data provenance for all datasets."""
+    return DataProvenanceResponse(
+        habitations=DataProvenance(
+            dataset_name="vulnerable_habitations",
+            source="Synthetic demo data for Barpeta district (SIH 2026 prototype). Village names from Census 2011; population figures approximated from Census 2011/SECC ranges; vulnerability scores synthetic.",
+            data_type="synthetic",
+            last_updated="2024-03-01",
+            confidence_score=0.3,
+            methodology="Village locations and names from Census 2011 Barpeta district. Population figures scaled from Census 2011 ranges. Vulnerability scores and hazard exposure synthetically generated for demo.",
+            limitations="Population figures are approximate. Hazard exposure not based on actual flood models. Not suitable for operational decisions.",
+        ),
+        sites=DataProvenance(
+            dataset_name="relocation_sites",
+            source="Synthetic demo data - candidate relocation sites for Barpeta district.",
+            data_type="synthetic",
+            last_updated="2024-03-01",
+            confidence_score=0.2,
+            methodology="Sites placed on elevated ground per SRTM DEM. Capacities and infrastructure readiness synthetically assigned.",
+            limitations="Sites are hypothetical. No official land acquisition or suitability assessment performed.",
+        ),
+        routes=DataProvenance(
+            dataset_name="evacuation_routes",
+            source="Synthetic demo data - evacuation routes for Barpeta district.",
+            data_type="synthetic",
+            last_updated="2024-03-01",
+            confidence_score=0.3,
+            methodology="Routes aligned with OSM/Bhuvan road network (NH-31, SH-15, district roads). Bridge dependencies from infrastructure.geojson. Travel times estimated at 40 km/h.",
+            limitations="Route geometries simplified. Bridge conditions synthetic. Not verified against actual road conditions.",
+        ),
+        hazards=DataProvenance(
+            dataset_name="hazard_zones",
+            source="Synthetic demo data - flood/erosion hazard zones for Barpeta district.",
+            data_type="synthetic",
+            last_updated="2024-03-01",
+            confidence_score=0.2,
+            methodology="Hazard zones placed near major rivers (Beki, Manas, Kaldia) based on historical flood extents from ASDMA reports. Severity levels synthetic.",
+            limitations="Not based on CWC/ASDMA official flood zonation maps. Return periods not calibrated.",
+        ),
+        shelters=DataProvenance(
+            dataset_name="shelters",
+            source="Synthetic demo data - relief camps/shelters for Barpeta district.",
+            data_type="synthetic",
+            last_updated="2024-03-01",
+            confidence_score=0.3,
+            methodology="Shelter locations based on known relief camp locations from ASDMA. Capacities and facilities synthetically assigned.",
+            limitations="Not a complete inventory of actual shelters. Effective capacities are estimates.",
+        ),
+        population_grid=DataProvenance(
+            dataset_name="population_grid",
+            source="Synthetic demo data - population grid for Barpeta district.",
+            data_type="synthetic",
+            last_updated="2024-03-01",
+            confidence_score=0.2,
+            methodology="Grid cells populated using Census 2011 village populations distributed by area. Vulnerability index synthetic.",
+            limitations="Grid resolution coarse. Population distribution within villages assumed uniform.",
+        ),
+        infrastructure=DataProvenance(
+            dataset_name="infrastructure",
+            source="Synthetic demo data - roads, bridges, culverts for Barpeta district.",
+            data_type="synthetic",
+            last_updated="2024-03-01",
+            confidence_score=0.4,
+            methodology="Major roads (NH-31, SH-15) from OSM/Bhuvan. Bridge names and locations approximated from known crossings on Beki, Chaulkhowa, Kaldia, Manas rivers. Conditions synthetic.",
+            limitations="Bridge names (Beki River Bridge on NH-31, Chaulkhowa Bridge on SH-15, Kaldia River Bridge, Manas River Bridge) are approximations based on known river crossings. Not verified against official PWD/NHAI records.",
+        ),
+        ml_model=DataProvenance(
+            dataset_name="ml_risk_model",
+            source="RandomForest trained on statistical distributions from public datasets: IMD rainfall, CWC river levels, NASA SMAP soil moisture, SRTM elevation, HydroSHEDS distance-to-river, Census 2011/SECC vulnerability, ASDMA historical floods.",
+            data_type="derived",
+            last_updated="2026-09-18",
+            confidence_score=0.5,
+            methodology="Training data generated from parametric distributions fitted to public dataset statistics for Assam. Not trained on actual historical event records for specific villages.",
+            limitations="Model is a prototype. Feature importances show max_hazard_exposure and soil_moisture_pct as top predictors. Not validated against operational flood forecasting systems.",
+        ),
+    )
 
 
 # =============================================================================
@@ -1036,7 +1133,7 @@ async def run_optimization(
 ):
     """
     Run relocation optimization for given habitations and sites.
-  
+   
     Returns:
     - assignments: habitation, assigned site, population, priority, route status
     - site_remaining_capacity, total_assigned, total_unmet
@@ -1045,6 +1142,49 @@ async def run_optimization(
     result = run_relocation_optimization(
         habitation_ids=habitation_ids,
         site_ids=site_ids,
+        time_limit_seconds=time_limit_seconds,
+    )
+    return result
+
+
+# =============================================================================
+# What-If / Sensitivity Simulation
+# =============================================================================
+
+@router.post(
+    "/plan/simulate",
+    response_model=WhatIfSimulationResult,
+    tags=["Plan"],
+    summary="Run what-if simulation with parameter deltas",
+    description=(
+        "Runs a hypothetical relocation optimization with temporary parameter changes "
+        "(capacity adjustments, route closures/reopenings, habitation/site filters) "
+        "WITHOUT persisting any changes. Returns the simulated plan for evaluation."
+    ),
+)
+async def run_what_if_simulation_endpoint(
+    request: WhatIfSimulationRequest,
+    time_limit_seconds: int = Query(
+        30,
+        ge=5,
+        le=300,
+        description="Solver time limit in seconds",
+    ),
+):
+    """
+    Run a what-if simulation with parameter deltas.
+    
+    Accepts:
+    - capacity_changes: {site_id: new_max_capacity}
+    - route_closures: [route_id, ...] - sets routes to impassable
+    - route_reopenings: [route_id, ...] - sets routes to open
+    - habitation_additions/removals: habitation IDs to include/exclude
+    - site_additions/removals: site IDs to include/exclude
+    
+    Returns simulated plan WITHOUT persisting changes.
+    """
+    result = run_what_if_simulation(
+        request=request,
         time_limit_seconds=time_limit_seconds,
     )
     return result

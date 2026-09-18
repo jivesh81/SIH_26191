@@ -32,6 +32,7 @@ from app.services.data_layer import (
 from app.services.intelligence import (
     check_route_feasibility,
     get_all_effective_capacities,
+    get_route_candidates,
 )
 
 from optimizer import (
@@ -463,7 +464,8 @@ def _build_infeasibility_reasons(
     sites: List[SiteResponse],
 ) -> List[InfeasibilityReason]:
     """
-    Build truthful explanations for unmet population.
+    Build truthful explanations for unmet population with specific,
+    actionable recommendations per constraint.
 
     Capacity alone is not assumed to be the cause because
     whole-habitation packing and route constraints can also
@@ -541,6 +543,31 @@ def _build_infeasibility_reasons(
             - total_effective_capacity
         )
 
+        # Find sites with largest gaps for specific recommendation
+        site_gaps = []
+        for site in sites:
+            available = _available_effective_capacity(site, effective_capacity_map)
+            if available > 0:
+                site_gaps.append((site.id, site.name, available))
+        
+        # Sort by available capacity descending
+        site_gaps.sort(key=lambda x: x[2], reverse=True)
+        
+        # Specific recommendation: which site needs how much more
+        if site_gaps:
+            top_site_id, top_site_name, top_avail = site_gaps[0]
+            needed_at_top = min(shortage, max(h.population for h in habitations if h.id in unassigned_ids))
+            specific_rec = (
+                f"Increase {top_site_name} ({top_site_id}) effective capacity by {needed_at_top} "
+                f"(current: {top_avail}) to accommodate largest unassigned habitation, "
+                f"or activate additional sites to cover total shortage of {shortage}."
+            )
+        else:
+            specific_rec = (
+                f"Activate new relocation sites with at least {shortage} total effective capacity "
+                f"to cover the shortfall."
+            )
+
         reasons.append(
             InfeasibilityReason(
                 constraint="effective_capacity",
@@ -553,11 +580,7 @@ def _build_infeasibility_reasons(
                 ),
                 affected_habitations=unassigned_ids,
                 severity="critical",
-                recommendation=(
-                    "Increase effective site capacity, "
-                    "activate additional safe relocation sites, "
-                    "or reduce the affected population."
-                ),
+                recommendation=specific_rec,
             )
         )
 
@@ -578,11 +601,13 @@ def _build_infeasibility_reasons(
             sites_with_capacity.append(
                 (
                     site.id,
+                    site.name,
                     available,
                 )
             )
 
     packing_blocked = []
+    packing_details = []  # (habitation_id, habitation_name, population, max_site_avail)
 
     for habitation_id in unassigned_ids:
 
@@ -597,18 +622,35 @@ def _build_infeasibility_reasons(
             habitation.population
         )
 
-        can_fit_anywhere = any(
-            population <= available
-            for _, available
-            in sites_with_capacity
+        max_available = max(
+            (available for _, _, available in sites_with_capacity),
+            default=0
         )
 
+        can_fit_anywhere = population <= max_available
+
         if not can_fit_anywhere:
-            packing_blocked.append(
-                habitation_id
-            )
+            packing_blocked.append(habitation_id)
+            packing_details.append((
+                habitation_id,
+                habitation.name,
+                population,
+                max_available
+            ))
 
     if packing_blocked:
+
+        # Build specific recommendations per habitation
+        detail_strs = []
+        for hab_id, hab_name, pop, max_avail in packing_details:
+            needed = pop - max_avail
+            detail_strs.append(f"{hab_name} ({hab_id}): needs {pop}, max site has {max_avail} → increase by {needed}")
+        
+        specific_rec = (
+            "Habitations too large for any single site: "
+            + "; ".join(detail_strs)
+            + ". Increase site capacity or enable habitation splitting."
+        )
 
         reasons.append(
             InfeasibilityReason(
@@ -622,11 +664,7 @@ def _build_infeasibility_reasons(
                 ),
                 affected_habitations=packing_blocked,
                 severity="critical",
-                recommendation=(
-                    "Increase a site's effective capacity enough "
-                    "to hold the complete habitation, or activate "
-                    "additional relocation sites."
-                ),
+                recommendation=specific_rec,
             )
         )
 
@@ -635,6 +673,7 @@ def _build_infeasibility_reasons(
     # -----------------------------------------------------------------
 
     route_blocked = []
+    route_details = []  # (habitation_id, habitation_name, blocked_routes_info)
 
     for habitation_id in unassigned_ids:
 
@@ -646,6 +685,7 @@ def _build_infeasibility_reasons(
             continue
 
         has_feasible_route = False
+        blocked_for_hab = []
 
         for site in sites:
 
@@ -659,6 +699,7 @@ def _build_infeasibility_reasons(
             ):
                 continue
 
+            # First check primary route feasibility
             feasibility = check_route_feasibility(
                 habitation.id,
                 site.id,
@@ -668,12 +709,53 @@ def _build_infeasibility_reasons(
                 has_feasible_route = True
                 break
 
+            # Track why this route failed
+            blocked_for_hab.append({
+                "site_id": site.id,
+                "site_name": site.name,
+                "reason": feasibility.reason,
+                "route_used": feasibility.route_used,
+                "bottlenecks": feasibility.bottlenecks,
+            })
+
+            # If primary route fails, check alternative routes via get_route_candidates
+            candidates = get_route_candidates(habitation.id)
+            alt_found = False
+            for candidate in candidates:
+                if candidate["site_id"] == site.id and candidate["status"] == "open":
+                    alt_found = True
+                    has_feasible_route = True
+                    break
+            
+            if alt_found:
+                break
+
         if not has_feasible_route:
-            route_blocked.append(
-                habitation_id
-            )
+            route_blocked.append(habitation_id)
+            route_details.append((habitation_id, habitation.name, blocked_for_hab))
 
     if route_blocked:
+
+        # Build specific recommendations per habitation
+        detail_strs = []
+        for hab_id, hab_name, blocked_list in route_details:
+            if blocked_list:
+                # Find the most common bottleneck
+                bottlenecks = []
+                for b in blocked_list:
+                    bottlenecks.extend(b.get("bottlenecks", []))
+                from collections import Counter
+                bottleneck_counts = Counter(bottlenecks)
+                top_bottleneck = bottleneck_counts.most_common(1)[0][0] if bottleneck_counts else "unknown"
+                detail_strs.append(f"{hab_name} ({hab_id}): blocked by {top_bottleneck}")
+            else:
+                detail_strs.append(f"{hab_name} ({hab_id}): no viable route to any site with capacity")
+        
+        specific_rec = (
+            "Route-blocked habitations: "
+            + "; ".join(detail_strs)
+            + ". Restore bridges, open alternative routes, or use different sites."
+        )
 
         reasons.append(
             InfeasibilityReason(
@@ -681,15 +763,12 @@ def _build_infeasibility_reasons(
                 description=(
                     "Some unmet habitations have no feasible "
                     "route to a relocation site with enough "
-                    "effective capacity."
+                    "effective capacity, even after checking "
+                    "alternative routes."
                 ),
                 affected_habitations=route_blocked,
                 severity="critical",
-                recommendation=(
-                    "Restore blocked roads or bridges, "
-                    "activate an alternative route, or use "
-                    "another relocation site."
-                ),
+                recommendation=specific_rec,
             )
         )
 
@@ -1384,3 +1463,149 @@ def run_relocation_optimization(
         computation_time_ms=reported_solver_time,
         solver_stats=opt_result.solver_stats,
     )
+
+
+# =============================================================================
+# What-If Simulation
+# =============================================================================
+
+import copy
+import uuid
+from contextlib import contextmanager
+
+
+@contextmanager
+def _temporary_site_capacity_change(site_id: str, new_capacity: int):
+    """Context manager to temporarily change a site's max_capacity."""
+    from app.services.data_layer import get_site_by_id, get_sites_fn
+    site = get_site_by_id(site_id)
+    if not site:
+        yield
+        return
+    original_capacity = site.max_capacity
+    site.max_capacity = new_capacity
+    # Clear effective capacity cache
+    from app.services.intelligence import get_all_effective_capacities as get_all_eff_cap_fn
+    get_all_eff_cap_fn.cache_clear()
+    try:
+        yield
+    finally:
+        site.max_capacity = original_capacity
+        get_all_eff_cap_fn.cache_clear()
+
+
+@contextmanager
+def _temporary_route_status_change(route_id: str, new_status: str):
+    """Context manager to temporarily change a route's status."""
+    from app.services.data_layer import get_route_by_id, get_routes_fn
+    route = get_route_by_id(route_id)
+    if not route:
+        yield
+        return
+    original_status = route.status
+    route.status = new_status
+    try:
+        yield
+    finally:
+        route.status = original_status
+
+
+def run_what_if_simulation(
+    request: "WhatIfSimulationRequest",
+    time_limit_seconds: int = 30,
+) -> "WhatIfSimulationResult":
+    """
+    Run a what-if simulation with parameter deltas.
+    
+    Applies the requested changes temporarily, runs optimization,
+    and returns the result without persisting any changes.
+    
+    Args:
+        request: WhatIfSimulationRequest with parameter deltas
+        time_limit_seconds: Solver time limit
+        
+    Returns:
+        WhatIfSimulationResult with simulated plan and impact summary
+    """
+    from app.schemas.domain import WhatIfSimulationRequest, WhatIfSimulationResult, RelocationOptimizationResponse
+    
+    # Validate request type
+    if not isinstance(request, WhatIfSimulationRequest):
+        request = WhatIfSimulationRequest(**request)
+    
+    simulation_id = str(uuid.uuid4())[:8]
+    changes_applied = {
+        "capacity_changes": dict(request.capacity_changes),
+        "route_closures": list(request.route_closures),
+        "route_reopenings": list(request.route_reopenings),
+        "habitation_additions": list(request.habitation_additions),
+        "habitation_removals": list(request.habitation_removals),
+        "site_additions": list(request.site_additions),
+        "site_removals": list(request.site_removals),
+    }
+    
+    # Apply capacity changes
+    for site_id, new_capacity in request.capacity_changes.items():
+        _temporary_site_capacity_change(site_id, new_capacity).__enter__()
+    
+    # Apply route closures
+    for route_id in request.route_closures:
+        _temporary_route_status_change(route_id, "impassable").__enter__()
+    
+    # Apply route reopenings
+    for route_id in request.route_reopenings:
+        _temporary_route_status_change(route_id, "open").__enter__()
+    
+    # Prepare habitation and site filters
+    habitation_ids = None
+    site_ids = None
+    
+    if request.habitation_additions or request.habitation_removals:
+        from app.services.data_layer import get_habitations
+        all_hab_ids = {h.id for h in get_habitations()}
+        filtered = set(all_hab_ids)
+        filtered.update(request.habitation_additions)
+        filtered.difference_update(request.habitation_removals)
+        habitation_ids = list(filtered)
+    
+    if request.site_additions or request.site_removals:
+        from app.services.data_layer import get_sites
+        all_site_ids = {s.id for s in get_sites()}
+        filtered = set(all_site_ids)
+        filtered.update(request.site_additions)
+        filtered.difference_update(request.site_removals)
+        site_ids = list(filtered)
+    
+    try:
+        # Run optimization with modified parameters
+        simulated_result = run_relocation_optimization(
+            habitation_ids=habitation_ids,
+            site_ids=site_ids,
+            time_limit_seconds=time_limit_seconds,
+        )
+        
+        # Build impact summary
+        impact_summary = {
+            "total_assigned_population": simulated_result.total_assigned_population,
+            "total_unmet_population": simulated_result.total_unmet_population,
+            "optimization_status": simulated_result.status.value,
+            "num_assignments": len(simulated_result.assignments),
+            "num_infeasibility_reasons": len(simulated_result.infeasibility_reasons),
+        }
+        
+        return WhatIfSimulationResult(
+            simulation_id=simulation_id,
+            scenario_name=request.scenario_name,
+            base_plan_id=request.base_plan_id,
+            simulated_plan=simulated_result,
+            changes_applied=changes_applied,
+            impact_summary=impact_summary,
+        )
+    finally:
+        # Clean up all temporary changes
+        for site_id in request.capacity_changes:
+            _temporary_site_capacity_change(site_id, 0).__exit__(None, None, None)
+        for route_id in request.route_closures:
+            _temporary_route_status_change(route_id, "open").__exit__(None, None, None)
+        for route_id in request.route_reopenings:
+            _temporary_route_status_change(route_id, "impassable").__exit__(None, None, None)
