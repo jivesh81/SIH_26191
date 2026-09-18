@@ -8,7 +8,7 @@
       "properties": {
         "id": "hab_001",
         "name": "Bhella Gaon",
-        "population": 1250,
+        "population": 1287,
         "vulnerability_score": 0.88,
         "hazard_exposure": [
           {"hazard_type": "flood", "severity": "high"},
@@ -31,7 +31,7 @@
       "properties": {
         "id": "hab_002",
         "name": "Kalgachia",
-        "population": 1800,
+        "population": 1843,
         "vulnerability_score": 0.85,
         "hazard_exposure": [
           {"hazard_type": "flood", "severity": "high"},
@@ -54,7 +54,7 @@
       "properties": {
         "id": "hab_003",
         "name": "Mandia Gaon",
-        "population": 950,
+        "population": 976,
         "vulnerability_score": 0.82,
         "hazard_exposure": [
           {"hazard_type": "flood", "severity": "high"}
@@ -76,7 +76,7 @@
       "properties": {
         "id": "hab_004",
         "name": "Chenga Bazar",
-        "population": 2100,
+        "population": 2167,
         "vulnerability_score": 0.79,
         "hazard_exposure": [
           {"hazard_type": "flood", "severity": "medium"},
@@ -99,7 +99,7 @@
       "properties": {
         "id": "hab_005",
         "name": "Goberadhana",
-        "population": 1650,
+        "population": 1689,
         "vulnerability_score": 0.77,
         "hazard_exposure": [
           {"hazard_type": "flood", "severity": "high"},
@@ -122,7 +122,7 @@
       "properties": {
         "id": "hab_006",
         "name": "Rupsi Char",
-        "population": 800,
+        "population": 834,
         "vulnerability_score": 0.90,
         "hazard_exposure": [
           {"hazard_type": "flood", "severity": "extreme"},
@@ -145,7 +145,7 @@
       "properties": {
         "id": "hab_007",
         "name": "Barpeta Road",
-        "population": 3200,
+        "population": 3342,
         "vulnerability_score": 0.72,
         "hazard_exposure": [
           {"hazard_type": "flood", "severity": "medium"}
@@ -167,7 +167,7 @@
       "properties": {
         "id": "hab_008",
         "name": "Howly Town",
-        "population": 2800,
+        "population": 2891,
         "vulnerability_score": 0.68,
         "hazard_exposure": [
           {"hazard_type": "flood", "severity": "medium"}
@@ -189,7 +189,7 @@
       "properties": {
         "id": "hab_009",
         "name": "Pathsala",
-        "population": 2400,
+        "population": 2467,
         "vulnerability_score": 0.74,
         "hazard_exposure": [
           {"hazard_type": "flood", "severity": "medium"},
@@ -212,7 +212,7 @@
       "properties": {
         "id": "hab_010",
         "name": "Sarbhog",
-        "population": 1950,
+        "population": 1987,
         "vulnerability_score": 0.71,
         "hazard_exposure": [
           {"hazard_type": "flood", "severity": "low"},
@@ -235,7 +235,7 @@
       "properties": {
         "id": "hab_011",
         "name": "Barnagar",
-        "population": 1400,
+        "population": 1434,
         "vulnerability_score": 0.80,
         "hazard_exposure": [
           {"hazard_type": "flood", "severity": "high"}
@@ -257,7 +257,7 @@
       "properties": {
         "id": "hab_012",
         "name": "Pakabetbari",
-        "population": 1100,
+        "population": 1123,
         "vulnerability_score": 0.76,
         "hazard_exposure": [
           {"hazard_type": "flood", "severity": "medium"},

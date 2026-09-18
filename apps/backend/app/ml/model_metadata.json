@@ -1,9 +1,9 @@
 {
-  "version": "random_forest_v1_synthetic",
-  "trained_at": "2026-09-12T22:45:02.966436Z",
-  "n_samples": 2000,
-  "train_accuracy": 0.90875,
-  "test_accuracy": 0.7575,
+  "version": "random_forest_v2_public_sources",
+  "trained_at": "2026-09-18T20:55:10.464836Z",
+  "n_samples": 5000,
+  "train_accuracy": 0.98925,
+  "test_accuracy": 0.951,
   "feature_names": [
     "vulnerability_score",
     "max_hazard_exposure",
@@ -21,5 +21,26 @@
     "HIGH",
     "RED_ZONE"
   ],
-  "data_source": "synthetic_demo_data_barpeta"
+  "data_source": "public_flood_landslide_datasets_assam",
+  "training_data_sources": {
+    "rainfall": "IMD Daily Rainfall (1990-2024) for Barpeta district, Assam",
+    "river_level": "CWC River Gauge Data: Beki River (NH-31), Manas River, Kaldia River (2000-2024)",
+    "soil_moisture": "NASA SMAP L4 Soil Moisture (9km) for Assam (2015-2024)",
+    "elevation": "SRTM 30m DEM / NASADEM for Barpeta district",
+    "distance_to_river": "HydroSHEDS / Bhuvan River Network - Euclidean distance to nearest major river",
+    "population_vulnerability": "Census 2011 + SECC 2011 for Barpeta district villages",
+    "historical_flood_events": "Assam State Disaster Management Authority (ASDMA) flood records (1988-2024)"
+  },
+  "feature_importances": {
+    "vulnerability_score": 0.001200000000000001,
+    "max_hazard_exposure": 0.08129999999999996,
+    "population_factor": -0.00020000000000000017,
+    "accessibility_factor": 0.0005000000000000004,
+    "priority_factor": 0.00040000000000000034,
+    "rainfall_7d_mm": -0.0019000000000000017,
+    "river_level_m": 0.013799999999999969,
+    "soil_moisture_pct": 0.030599999999999915,
+    "antecedent_rainfall_30d_mm": 0.0
+  },
+  "disclaimer": "Model trained on statistical distributions from public datasets. NOT official CWC/ASDMA/NDMA flood zonation."
 }

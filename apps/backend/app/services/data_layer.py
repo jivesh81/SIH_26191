@@ -23,6 +23,7 @@ from app.schemas.domain import (
     DashboardResponse,
     FeatureCollection,
     Feature,
+    DataProvenance,
 )
 
 
@@ -39,6 +40,78 @@ def _load_geojson(filename: str) -> FeatureCollection:
         data = json.load(f)
     
     return FeatureCollection(**data)
+
+
+# Provenance metadata for each dataset
+HABITATION_PROVENANCE = DataProvenance(
+    dataset_name="vulnerable_habitations",
+    source="Synthetic demo data for Barpeta district (SIH 2026 prototype). Village names from Census 2011; population figures approximated from Census 2011/SECC ranges; vulnerability scores synthetic.",
+    data_type="synthetic",
+    last_updated="2024-03-01",
+    confidence_score=0.3,
+    methodology="Village locations and names from Census 2011 Barpeta district. Population figures scaled from Census 2011 ranges. Vulnerability scores and hazard exposure synthetically generated for demo.",
+    limitations="Population figures are approximate. Hazard exposure not based on actual flood models. Not suitable for operational decisions.",
+)
+
+SITE_PROVENANCE = DataProvenance(
+    dataset_name="relocation_sites",
+    source="Synthetic demo data - candidate relocation sites for Barpeta district.",
+    data_type="synthetic",
+    last_updated="2024-03-01",
+    confidence_score=0.2,
+    methodology="Sites placed on elevated ground per SRTM DEM. Capacities and infrastructure readiness synthetically assigned.",
+    limitations="Sites are hypothetical. No official land acquisition or suitability assessment performed.",
+)
+
+ROUTE_PROVENANCE = DataProvenance(
+    dataset_name="evacuation_routes",
+    source="Synthetic demo data - evacuation routes for Barpeta district.",
+    data_type="synthetic",
+    last_updated="2024-03-01",
+    confidence_score=0.3,
+    methodology="Routes aligned with OSM/Bhuvan road network (NH-31, SH-15, district roads). Bridge dependencies from infrastructure.geojson. Travel times estimated at 40 km/h.",
+    limitations="Route geometries simplified. Bridge conditions synthetic. Not verified against actual road conditions.",
+)
+
+HAZARD_PROVENANCE = DataProvenance(
+    dataset_name="hazard_zones",
+    source="Synthetic demo data - flood/erosion hazard zones for Barpeta district.",
+    data_type="synthetic",
+    last_updated="2024-03-01",
+    confidence_score=0.2,
+    methodology="Hazard zones placed near major rivers (Beki, Manas, Kaldia) based on historical flood extents from ASDMA reports. Severity levels synthetic.",
+    limitations="Not based on CWC/ASDMA official flood zonation maps. Return periods not calibrated.",
+)
+
+SHELTER_PROVENANCE = DataProvenance(
+    dataset_name="shelters",
+    source="Synthetic demo data - relief camps/shelters for Barpeta district.",
+    data_type="synthetic",
+    last_updated="2024-03-01",
+    confidence_score=0.3,
+    methodology="Shelter locations based on known relief camp locations from ASDMA. Capacities and facilities synthetically assigned.",
+    limitations="Not a complete inventory of actual shelters. Effective capacities are estimates.",
+)
+
+POPULATION_GRID_PROVENANCE = DataProvenance(
+    dataset_name="population_grid",
+    source="Synthetic demo data - population grid for Barpeta district.",
+    data_type="synthetic",
+    last_updated="2024-03-01",
+    confidence_score=0.2,
+    methodology="Grid cells populated using Census 2011 village populations distributed by area. Vulnerability index synthetic.",
+    limitations="Grid resolution coarse. Population distribution within villages assumed uniform.",
+)
+
+INFRASTRUCTURE_PROVENANCE = DataProvenance(
+    dataset_name="infrastructure",
+    source="Synthetic demo data - roads, bridges, culverts for Barpeta district.",
+    data_type="synthetic",
+    last_updated="2024-03-01",
+    confidence_score=0.4,
+    methodology="Major roads (NH-31, SH-15) from OSM/Bhuvan. Bridge names and locations approximated from known crossings on Beki, Chaulkhowa, Kaldia, Manas rivers. Conditions synthetic.",
+    limitations="Bridge names (Beki River Bridge on NH-31, Chaulkhowa Bridge on SH-15, Kaldia River Bridge, Manas River Bridge) are approximations based on known river crossings. Not verified against official PWD/NHAI records.",
+)
 
 
 @lru_cache(maxsize=1)
@@ -63,6 +136,7 @@ def get_habitations() -> List[HabitationResponse]:
             is_accessible=props.get("is_accessible", True),
             priority_rank=props.get("priority_rank"),
             geometry=geom,
+            data_provenance=HABITATION_PROVENANCE,
         )
         habitations.append(hab)
     
@@ -94,6 +168,7 @@ def get_sites() -> List[SiteResponse]:
             power_available=props.get("power_available", False),
             road_access=props.get("road_access", False),
             geometry=geom,
+            data_provenance=SITE_PROVENANCE,
         )
         sites.append(site)
     
@@ -122,6 +197,7 @@ def get_routes() -> List[RouteResponse]:
             bridge_dependencies=props.get("bridge_dependencies", []),
             last_assessment=props.get("last_assessment"),
             geometry=geom,
+            data_provenance=ROUTE_PROVENANCE,
         )
         routes.append(route)
     
@@ -146,6 +222,7 @@ def get_hazards() -> List[HazardResponse]:
             source=props.get("source"),
             last_updated=props.get("last_updated"),
             geometry=geom,
+            data_provenance=HAZARD_PROVENANCE,
         )
         hazards.append(hazard)
     
@@ -175,6 +252,7 @@ def get_shelters() -> List[ShelterResponse]:
             elevation_m=props.get("elevation_m", 0.0),
             flood_level_m=props.get("flood_level_m"),
             geometry=geom,
+            data_provenance=SHELTER_PROVENANCE,
         )
         shelters.append(shelter)
     
@@ -202,6 +280,7 @@ def get_population_grid() -> List[PopulationGridResponse]:
             elderly_population=props.get("elderly_population", 0),
             disabled_population=props.get("disabled_population", 0),
             geometry=geom,
+            data_provenance=POPULATION_GRID_PROVENANCE,
         )
         grids.append(grid)
     
@@ -230,6 +309,7 @@ def get_infrastructure() -> List[InfrastructureResponse]:
             clearance_m=props.get("clearance_m"),
             last_inspection=props.get("last_inspection"),
             geometry=geom,
+            data_provenance=INFRASTRUCTURE_PROVENANCE,
         )
         infra.append(item)
     

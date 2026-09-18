@@ -323,6 +323,34 @@ class FeatureCollection(BaseModel):
 
 
 # =============================================================================
+# Data Provenance
+# =============================================================================
+
+class DataProvenance(BaseModel):
+    """Data provenance and quality metadata for a dataset or record."""
+    dataset_name: str
+    source: str  # e.g., "IMD", "CWC", "Census 2011", "synthetic_demo"
+    data_type: Literal["real", "synthetic", "derived"]
+    last_updated: Optional[str] = None
+    confidence_score: Optional[float] = Field(None, ge=0.0, le=1.0)
+    disclaimer: str = "This data is for demonstration/prototype purposes only. NOT official CWC/ASDMA/NDMA flood zonation or government data."
+    methodology: Optional[str] = None
+    limitations: Optional[str] = None
+
+
+class DataProvenanceResponse(BaseModel):
+    """Full provenance response for all datasets."""
+    habitations: DataProvenance
+    sites: DataProvenance
+    routes: DataProvenance
+    hazards: DataProvenance
+    shelters: DataProvenance
+    population_grid: DataProvenance
+    infrastructure: DataProvenance
+    ml_model: DataProvenance
+
+
+# =============================================================================
 # API Response Schemas
 # =============================================================================
 
@@ -339,6 +367,8 @@ class HabitationResponse(BaseModel):
     is_accessible: bool
     priority_rank: Optional[int]
     geometry: Optional[Dict[str, Any]] = None
+    data_provenance: Optional[DataProvenance] = None
+    data_quality: float = Field(default=0.3, ge=0.0, le=1.0, description="Data quality score: 1.0=verified real data, 0.0=fully synthetic. Current demo data is synthetic.")
 
 
 class SiteResponse(BaseModel):
@@ -357,6 +387,8 @@ class SiteResponse(BaseModel):
     power_available: bool
     road_access: bool
     geometry: Optional[Dict[str, Any]] = None
+    data_provenance: Optional[DataProvenance] = None
+    data_quality: float = Field(default=0.2, ge=0.0, le=1.0, description="Data quality score: 1.0=verified real data, 0.0=fully synthetic. Current demo sites are synthetic.")
     
     @computed_field
     @property
@@ -384,6 +416,8 @@ class RouteResponse(BaseModel):
     bridge_dependencies: List[str]
     last_assessment: Optional[str]
     geometry: Optional[Dict[str, Any]] = None
+    data_provenance: Optional[DataProvenance] = None
+    data_quality: float = Field(default=0.3, ge=0.0, le=1.0, description="Data quality score: 1.0=verified real data, 0.0=fully synthetic. Current demo routes are synthetic but aligned to real road network.")
     
     @computed_field
     @property
@@ -407,6 +441,8 @@ class HazardResponse(BaseModel):
     source: Optional[str]
     last_updated: Optional[str]
     geometry: Optional[Dict[str, Any]] = None
+    data_provenance: Optional[DataProvenance] = None
+    data_quality: float = Field(default=0.2, ge=0.0, le=1.0, description="Data quality score: 1.0=verified real data, 0.0=fully synthetic. Current demo hazard zones are synthetic.")
 
 
 class ShelterResponse(BaseModel):
@@ -423,6 +459,8 @@ class ShelterResponse(BaseModel):
     elevation_m: float
     flood_level_m: Optional[float]
     geometry: Optional[Dict[str, Any]] = None
+    data_provenance: Optional[DataProvenance] = None
+    data_quality: float = Field(default=0.3, ge=0.0, le=1.0, description="Data quality score: 1.0=verified real data, 0.0=fully synthetic. Current demo shelters based on real locations but with synthetic capacities.")
     
     @property
     def available_capacity(self) -> int:
@@ -447,6 +485,8 @@ class PopulationGridResponse(BaseModel):
     elderly_population: int
     disabled_population: int
     geometry: Optional[Dict[str, Any]] = None
+    data_provenance: Optional[DataProvenance] = None
+    data_quality: float = Field(default=0.2, ge=0.0, le=1.0, description="Data quality score: 1.0=verified real data, 0.0=fully synthetic. Current demo grid uses Census 2011 totals distributed synthetically.")
 
 
 class InfrastructureResponse(BaseModel):
@@ -462,6 +502,8 @@ class InfrastructureResponse(BaseModel):
     clearance_m: Optional[float]
     last_inspection: Optional[str]
     geometry: Optional[Dict[str, Any]] = None
+    data_provenance: Optional[DataProvenance] = None
+    data_quality: float = Field(default=0.4, ge=0.0, le=1.0, description="Data quality score: 1.0=verified real data, 0.0=fully synthetic. Major roads/bridges aligned to real OSM/Bhuvan data; conditions synthetic.")
 
 
 # =============================================================================
@@ -526,6 +568,56 @@ class SimulationResult(BaseModel):
     new_optimization_result: Optional[Dict[str, Any]] = None
     impact_assessment: Dict[str, Any]
     timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+
+# =============================================================================
+# What-If / Sensitivity Simulation
+# =============================================================================
+
+class WhatIfSimulationRequest(BaseModel):
+    """Request for what-if simulation with parameter deltas."""
+    scenario_name: str = "what_if_simulation"
+    base_plan_id: Optional[str] = None
+    capacity_changes: Dict[str, int] = Field(
+        default_factory=dict,
+        description="Site ID -> new max_capacity (positive or negative delta)"
+    )
+    route_closures: List[str] = Field(
+        default_factory=list,
+        description="List of route IDs to close (set to impassable)"
+    )
+    route_reopenings: List[str] = Field(
+        default_factory=list,
+        description="List of route IDs to reopen (set to open)"
+    )
+    habitation_additions: List[str] = Field(
+        default_factory=list,
+        description="List of habitation IDs to add to optimization"
+    )
+    habitation_removals: List[str] = Field(
+        default_factory=list,
+        description="List of habitation IDs to remove from optimization"
+    )
+    site_additions: List[str] = Field(
+        default_factory=list,
+        description="List of site IDs to add to optimization"
+    )
+    site_removals: List[str] = Field(
+        default_factory=list,
+        description="List of site IDs to remove from optimization"
+    )
+
+
+class WhatIfSimulationResult(BaseModel):
+    """Result of what-if simulation (not persisted)."""
+    simulation_id: str
+    scenario_name: str
+    base_plan_id: Optional[str]
+    simulated_plan: "RelocationOptimizationResponse"
+    changes_applied: Dict[str, Any]
+    impact_summary: Dict[str, Any]
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    disclaimer: str = "Simulation result is not persisted. Use POST /api/v1/plan/approve to commit changes."
 
 
 # =============================================================================
