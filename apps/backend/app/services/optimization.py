@@ -854,6 +854,21 @@ def _build_assignments(
                 site_id,
             )
 
+            route_id = feasibility.route_used
+            distance_km = feasibility.distance_km
+            travel_time_min = feasibility.travel_time_min
+            route_status = "feasible" if feasibility.feasible else "infeasible"
+
+            if not feasibility.feasible:
+                candidates = get_route_candidates(habitation_id)
+                for candidate in candidates:
+                    if candidate.get("site_id") == site_id and candidate.get("status") == "open":
+                        route_id = candidate.get("route_id")
+                        distance_km = candidate.get("distance_km")
+                        travel_time_min = candidate.get("travel_time_min")
+                        route_status = "feasible"
+                        break
+
             site_capacity = _available_effective_capacity(
                 site,
                 effective_capacity_map,
@@ -882,20 +897,10 @@ def _build_assignments(
                     priority_rank=(
                         habitation.priority_rank
                     ),
-                    route_status=(
-                        "feasible"
-                        if feasibility.feasible
-                        else "infeasible"
-                    ),
-                    route_id=(
-                        feasibility.route_used
-                    ),
-                    distance_km=(
-                        feasibility.distance_km
-                    ),
-                    travel_time_min=(
-                        feasibility.travel_time_min
-                    ),
+                    route_status=route_status,
+                    route_id=route_id,
+                    distance_km=distance_km,
+                    travel_time_min=travel_time_min,
                     site_remaining_capacity=remaining,
                 )
             )
@@ -1022,21 +1027,34 @@ def _greedy_fallback(
     for habitation in sorted_habitations:
         population = int(habitation.population)
         best_site = None
-        best_feasibility = None
+        best_route_id = None
+        best_distance_km = None
+        best_travel_time_min = None
 
         for site in sites:
             if site_remaining.get(site.id, 0) < population:
                 continue
 
             feasibility = check_route_feasibility(habitation.id, site.id)
-            if not feasibility.feasible:
-                continue
+            if feasibility.feasible:
+                best_site = site
+                best_route_id = feasibility.route_used
+                best_distance_km = feasibility.distance_km
+                best_travel_time_min = feasibility.travel_time_min
+                break
+            else:
+                candidates = get_route_candidates(habitation.id)
+                for candidate in candidates:
+                    if candidate.get("site_id") == site.id and candidate.get("status") == "open":
+                        best_site = site
+                        best_route_id = candidate.get("route_id")
+                        best_distance_km = candidate.get("distance_km")
+                        best_travel_time_min = candidate.get("travel_time_min")
+                        break
+                if best_site:
+                    break
 
-            best_site = site
-            best_feasibility = feasibility
-            break
-
-        if best_site and best_feasibility:
+        if best_site and best_route_id:
             site_remaining[best_site.id] -= population
 
             assignments.append(
@@ -1048,9 +1066,9 @@ def _greedy_fallback(
                     population=population,
                     priority_rank=habitation.priority_rank,
                     route_status="feasible",
-                    route_id=best_feasibility.route_used,
-                    distance_km=best_feasibility.distance_km,
-                    travel_time_min=best_feasibility.travel_time_min,
+                    route_id=best_route_id,
+                    distance_km=best_distance_km,
+                    travel_time_min=best_travel_time_min,
                     site_remaining_capacity=site_remaining[best_site.id],
                 )
             )
@@ -1477,37 +1495,42 @@ from contextlib import contextmanager
 @contextmanager
 def _temporary_site_capacity_change(site_id: str, new_capacity: int):
     """Context manager to temporarily change a site's max_capacity."""
-    from app.services.data_layer import get_site_by_id, get_sites_fn
+    from app.services.data_layer import get_site_by_id, get_sites
+    from app.services.intelligence import get_all_effective_capacities as get_all_eff_cap_fn
     site = get_site_by_id(site_id)
     if not site:
         yield
         return
     original_capacity = site.max_capacity
     site.max_capacity = new_capacity
-    # Clear effective capacity cache
-    from app.services.intelligence import get_all_effective_capacities as get_all_eff_cap_fn
+    # Clear caches
+    get_sites.cache_clear()
     get_all_eff_cap_fn.cache_clear()
     try:
         yield
     finally:
         site.max_capacity = original_capacity
+        get_sites.cache_clear()
         get_all_eff_cap_fn.cache_clear()
 
 
 @contextmanager
 def _temporary_route_status_change(route_id: str, new_status: str):
     """Context manager to temporarily change a route's status."""
-    from app.services.data_layer import get_route_by_id, get_routes_fn
+    from app.services.data_layer import get_route_by_id, get_routes
     route = get_route_by_id(route_id)
     if not route:
         yield
         return
     original_status = route.status
     route.status = new_status
+    # Clear routes cache
+    get_routes.cache_clear()
     try:
         yield
     finally:
         route.status = original_status
+        get_routes.cache_clear()
 
 
 def run_what_if_simulation(
@@ -1544,44 +1567,86 @@ def run_what_if_simulation(
         "site_removals": list(request.site_removals),
     }
     
-    # Apply capacity changes
-    for site_id, new_capacity in request.capacity_changes.items():
-        _temporary_site_capacity_change(site_id, new_capacity).__enter__()
-    
-    # Apply route closures
-    for route_id in request.route_closures:
-        _temporary_route_status_change(route_id, "impassable").__enter__()
-    
-    # Apply route reopenings
-    for route_id in request.route_reopenings:
-        _temporary_route_status_change(route_id, "open").__enter__()
-    
-    # Prepare habitation and site filters
-    habitation_ids = None
-    site_ids = None
-    
-    if request.habitation_additions or request.habitation_removals:
-        from app.services.data_layer import get_habitations
-        all_hab_ids = {h.id for h in get_habitations()}
-        filtered = set(all_hab_ids)
-        filtered.update(request.habitation_additions)
-        filtered.difference_update(request.habitation_removals)
-        habitation_ids = list(filtered)
-    
-    if request.site_additions or request.site_removals:
-        from app.services.data_layer import get_sites
-        all_site_ids = {s.id for s in get_sites()}
-        filtered = set(all_site_ids)
-        filtered.update(request.site_additions)
-        filtered.difference_update(request.site_removals)
-        site_ids = list(filtered)
+    # Context managers for cleanup
+    site_cms = []
+    route_closure_cms = []
+    route_reopening_cms = []
     
     try:
+        # Apply capacity changes
+        for site_id, new_capacity in request.capacity_changes.items():
+            cm = _temporary_site_capacity_change(site_id, new_capacity)
+            cm.__enter__()
+            site_cms.append(cm)
+        
+        # Apply route closures
+        for route_id in request.route_closures:
+            cm = _temporary_route_status_change(route_id, "impassable")
+            cm.__enter__()
+            route_closure_cms.append(cm)
+        
+        # Apply route reopenings
+        for route_id in request.route_reopenings:
+            cm = _temporary_route_status_change(route_id, "open")
+            cm.__enter__()
+            route_reopening_cms.append(cm)
+        
+        # Prepare habitation and site filters
+        habitation_ids = None
+        site_ids = None
+        
+        if request.habitation_additions or request.habitation_removals:
+            from app.services.data_layer import get_habitations
+            all_hab_ids = {h.id for h in get_habitations()}
+            filtered = set(all_hab_ids)
+            filtered.update(request.habitation_additions)
+            filtered.difference_update(request.habitation_removals)
+            habitation_ids = list(filtered)
+        
+        if request.site_additions or request.site_removals:
+            from app.services.data_layer import get_sites
+            all_site_ids = {s.id for s in get_sites()}
+            filtered = set(all_site_ids)
+            filtered.update(request.site_additions)
+            filtered.difference_update(request.site_removals)
+            site_ids = list(filtered)
+        
         # Run optimization with modified parameters
         simulated_result = run_relocation_optimization(
             habitation_ids=habitation_ids,
             site_ids=site_ids,
             time_limit_seconds=time_limit_seconds,
+        )
+        
+        # Convert OptimizationResponse (dataclass) to RelocationOptimizationResponse (Pydantic model)
+        from app.schemas.domain import RelocationAssignmentResponse
+        # Convert assignments from dataclass to Pydantic model
+        assignment_responses = [
+            RelocationAssignmentResponse(
+                habitation_id=a.habitation_id,
+                habitation_name=a.habitation_name,
+                assigned_site_id=a.assigned_site_id,
+                assigned_site_name=a.assigned_site_name,
+                population=a.population,
+                priority_rank=a.priority_rank,
+                route_status=a.route_status,
+                route_id=a.route_id,
+                distance_km=a.distance_km,
+                travel_time_min=a.travel_time_min,
+                site_remaining_capacity=a.site_remaining_capacity,
+            )
+            for a in simulated_result.assignments
+        ]
+        
+        simulated_plan = RelocationOptimizationResponse(
+            status=simulated_result.status,
+            assignments=assignment_responses,
+            total_assigned_population=simulated_result.total_assigned_population,
+            total_unmet_population=simulated_result.total_unmet_population,
+            site_capacities=simulated_result.site_capacities,
+            infeasibility_reasons=simulated_result.infeasibility_reasons,
+            computation_time_ms=simulated_result.computation_time_ms,
+            solver_stats=simulated_result.solver_stats,
         )
         
         # Build impact summary
@@ -1597,15 +1662,15 @@ def run_what_if_simulation(
             simulation_id=simulation_id,
             scenario_name=request.scenario_name,
             base_plan_id=request.base_plan_id,
-            simulated_plan=simulated_result,
+            simulated_plan=simulated_plan,
             changes_applied=changes_applied,
             impact_summary=impact_summary,
         )
     finally:
         # Clean up all temporary changes
-        for site_id in request.capacity_changes:
-            _temporary_site_capacity_change(site_id, 0).__exit__(None, None, None)
-        for route_id in request.route_closures:
-            _temporary_route_status_change(route_id, "open").__exit__(None, None, None)
-        for route_id in request.route_reopenings:
-            _temporary_route_status_change(route_id, "impassable").__exit__(None, None, None)
+        for cm in site_cms:
+            cm.__exit__(None, None, None)
+        for cm in route_closure_cms:
+            cm.__exit__(None, None, None)
+        for cm in route_reopening_cms:
+            cm.__exit__(None, None, None)
