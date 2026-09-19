@@ -1,5 +1,5 @@
 {
-  "version": "random_forest_v2_public_sources",
+  "version": "random_forest_v1_synthetic_heuristic",
   "trained_at": "2026-09-18T20:55:10.464836Z",
   "n_samples": 5000,
   "train_accuracy": 0.98925,
@@ -21,15 +21,15 @@
     "HIGH",
     "RED_ZONE"
   ],
-  "data_source": "public_flood_landslide_datasets_assam",
+  "data_source": "synthetic_parametric_distributions",
   "training_data_sources": {
-    "rainfall": "IMD Daily Rainfall (1990-2024) for Barpeta district, Assam",
-    "river_level": "CWC River Gauge Data: Beki River (NH-31), Manas River, Kaldia River (2000-2024)",
-    "soil_moisture": "NASA SMAP L4 Soil Moisture (9km) for Assam (2015-2024)",
-    "elevation": "SRTM 30m DEM / NASADEM for Barpeta district",
-    "distance_to_river": "HydroSHEDS / Bhuvan River Network - Euclidean distance to nearest major river",
-    "population_vulnerability": "Census 2011 + SECC 2011 for Barpeta district villages",
-    "historical_flood_events": "Assam State Disaster Management Authority (ASDMA) flood records (1988-2024)"
+    "rainfall": "Synthetic gamma distribution (shape=1.8, scale=35) loosely matching IMD monsoon 7-day accum for Assam",
+    "river_level": "Synthetic beta distribution (alpha=2, beta=5) loosely matching CWC gauge ranges on Beki/Manas/Kaldia",
+    "soil_moisture": "Synthetic beta distribution (alpha=3, beta=2) loosely matching NASA SMAP range for Assam",
+    "elevation": "SRTM 30m DEM statistics for Barpeta district (used for hazard exposure param)",
+    "distance_to_river": "HydroSHEDS/Bhuvan river network distances (used for hazard exposure param)",
+    "population_vulnerability": "Census 2011 + SECC 2011 village statistics for Barpeta (used for vuln/pop params)",
+    "historical_flood_events": "ASDMA flood records summary (used for hazard exposure param, NOT for training labels)"
   },
   "feature_importances": {
     "vulnerability_score": 0.001200000000000001,
@@ -42,5 +42,5 @@
     "soil_moisture_pct": 0.030599999999999915,
     "antecedent_rainfall_30d_mm": 0.0
   },
-  "disclaimer": "Model trained on statistical distributions from public datasets. NOT official CWC/ASDMA/NDMA flood zonation."
+  "disclaimer": "Model trained on SYNTHETIC data from parametric distributions and heuristic threshold labels. NOT trained on actual IMD/CWC/NASA/ASDMA records. NOT official CWC/ASDMA/NDMA flood zonation."
 }

@@ -1,18 +1,17 @@
 """
 Lightweight ML Risk Predictor for Aapda Setu.
 
-Trains a RandomForestClassifier on training data derived from public
-flood/landslide risk datasets for Assam (IMD rainfall, CWC river levels,
-NASA SMAP soil moisture, SRTM elevation, hydrography distance-to-river).
+Trains a RandomForestClassifier on SYNTHETIC training data generated from
+parametric distributions loosely informed by public reporting for Assam
+flood/landslide risk. NOT trained on actual IMD/CWC/NASA/ASDMA records.
 Provides probabilistic risk predictions alongside the deterministic risk engine.
 
-Data Sources:
-- IMD (India Meteorological Department): Daily rainfall records for Assam districts
-- CWC (Central Water Commission): River gauge levels for Beki, Manas, Kaldia rivers
-- NASA SMAP: Soil moisture active/passive (L3/L4) products for Assam
-- SRTM 30m DEM: Elevation and derived topographic indices
-- HydroSHEDS / Bhuvan: River network for distance-to-river calculation
-- Census 2011 / SECC: Population and vulnerability baselines
+Data Provenance:
+- Feature distributions: Synthetic, parameterized from public summary statistics
+  for Assam (rainfall gamma/beta params, elevation stats, population ranges).
+- Labels: Assigned via hand-written threshold cascade (IMD rainfall categories +
+  heuristic river/soil moisture rules), NOT from historical flood outcome records.
+- This is a PROTOTYPE model for demonstration only.
 """
 
 import json
@@ -41,16 +40,19 @@ RISK_TO_IDX = {level: i for i, level in enumerate(RISK_LEVEL_ORDER)}
 IDX_TO_RISK = {i: level for i, level in enumerate(RISK_LEVEL_ORDER)}
 
 
-# Public data source references for training data generation
-# These are used to derive realistic feature distributions, NOT the actual GeoJSON features
-TRAINING_DATA_SOURCES = {
-    "rainfall": "IMD Daily Rainfall (1990-2024) for Barpeta district, Assam",
-    "river_level": "CWC River Gauge Data: Beki River (NH-31), Manas River, Kaldia River (2000-2024)",
-    "soil_moisture": "NASA SMAP L4 Soil Moisture (9km) for Assam (2015-2024)",
-    "elevation": "SRTM 30m DEM / NASADEM for Barpeta district",
-    "distance_to_river": "HydroSHEDS / Bhuvan River Network - Euclidean distance to nearest major river",
-    "population_vulnerability": "Census 2011 + SECC 2011 for Barpeta district villages",
-    "historical_flood_events": "Assam State Disaster Management Authority (ASDMA) flood records (1988-2024)",
+# Synthetic data generation parameters for training data
+# These are NOT actual data downloads from the named agencies.
+# Distributions are loosely informed by public reporting for Assam,
+# but training data is generated from parametric distributions and
+# labels from a hand-written threshold cascade.
+SYNTHETIC_DATA_PARAMS = {
+    "rainfall": "Synthetic gamma distribution (shape=1.8, scale=35) loosely matching IMD monsoon 7-day accum for Assam",
+    "river_level": "Synthetic beta distribution (alpha=2, beta=5) loosely matching CWC gauge ranges on Beki/Manas/Kaldia",
+    "soil_moisture": "Synthetic beta distribution (alpha=3, beta=2) loosely matching NASA SMAP range for Assam",
+    "elevation": "SRTM 30m DEM statistics for Barpeta district (used for hazard exposure param)",
+    "distance_to_river": "HydroSHEDS/Bhuvan river network distances (used for hazard exposure param)",
+    "population_vulnerability": "Census 2011 + SECC 2011 village statistics for Barpeta (used for vuln/pop params)",
+    "historical_flood_events": "ASDMA flood records summary (used for hazard exposure param, NOT for training labels)",
 }
 
 
@@ -250,7 +252,7 @@ class RiskPredictor:
                 "feature_names": self.feature_names,
                 "risk_levels": RISK_LEVEL_ORDER,
                 "data_source": "public_flood_landslide_datasets_assam",
-                "training_data_sources": TRAINING_DATA_SOURCES,
+                "training_data_sources": SYNTHETIC_DATA_PARAMS,
                 "feature_importances": feature_importance_dict,
                 "disclaimer": "Model trained on statistical distributions from public datasets. NOT official CWC/ASDMA/NDMA flood zonation.",
             }, f, indent=2)

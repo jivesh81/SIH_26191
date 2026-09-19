@@ -2,14 +2,13 @@
 """
 Train ML risk model for Aapda Setu.
 
-Uses training data derived from PUBLIC flood/landslide datasets for Assam:
-- IMD Daily Rainfall (1990-2024) for Barpeta district
-- CWC River Gauge Data: Beki, Manas, Kaldia rivers (2000-2024)
-- NASA SMAP L4 Soil Moisture for Assam (2015-2024)
-- SRTM 30m DEM / NASADEM for elevation
-- HydroSHEDS / Bhuvan River Network for distance-to-river
-- Census 2011 + SECC 2011 for population/vulnerability
-- ASDMA Historical Flood Records (1988-2024)
+Generates SYNTHETIC training data from parametric distributions loosely
+informed by public summary statistics for Assam flood/landslide risk.
+NOT trained on actual IMD/CWC/NASA/ASDMA records.
+
+Labels are assigned via a hand-written threshold cascade (IMD rainfall
+categories + heuristic river/soil moisture rules), NOT from historical
+flood outcome records.
 
 Trains a RandomForestClassifier. Saves model to app/ml/model.joblib.
 """
