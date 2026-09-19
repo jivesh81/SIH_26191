@@ -1,9 +1,9 @@
 {
   "version": "random_forest_v1_synthetic_heuristic",
-  "trained_at": "2026-09-19T13:09:47.810239Z",
-  "n_samples": 5000,
-  "train_accuracy": 0.98925,
-  "test_accuracy": 0.951,
+  "trained_at": "2026-09-19T13:14:55.240708Z",
+  "n_samples": 500,
+  "train_accuracy": 0.995,
+  "test_accuracy": 0.95,
   "feature_names": [
     "vulnerability_score",
     "max_hazard_exposure",
@@ -32,15 +32,15 @@
     "historical_flood_events": "ASDMA flood records summary (used for hazard exposure param, NOT for training labels)"
   },
   "feature_importances": {
-    "vulnerability_score": 0.001200000000000001,
-    "max_hazard_exposure": 0.08129999999999996,
-    "population_factor": -0.00020000000000000017,
-    "accessibility_factor": 0.0005000000000000004,
-    "priority_factor": 0.00040000000000000034,
-    "rainfall_7d_mm": -0.0019000000000000017,
-    "river_level_m": 0.013799999999999969,
-    "soil_moisture_pct": 0.030599999999999915,
-    "antecedent_rainfall_30d_mm": 0.0
+    "vulnerability_score": 0.0030000000000000027,
+    "max_hazard_exposure": 0.11199999999999996,
+    "population_factor": 0.022999999999999944,
+    "accessibility_factor": 0.0,
+    "priority_factor": 0.010999999999999965,
+    "rainfall_7d_mm": -0.006000000000000005,
+    "river_level_m": 0.0,
+    "soil_moisture_pct": 0.03199999999999993,
+    "antecedent_rainfall_30d_mm": 0.0040000000000000036
   },
   "disclaimer": "Model trained on SYNTHETIC data from parametric distributions and heuristic threshold labels. NOT trained on actual IMD/CWC/NASA/ASDMA records. NOT official CWC/ASDMA/NDMA flood zonation."
 }
