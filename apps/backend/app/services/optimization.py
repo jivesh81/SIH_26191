@@ -1497,15 +1497,15 @@ def _temporary_site_capacity_change(site_id: str, new_capacity: int):
     """Context manager to temporarily change a site's max_capacity."""
     from app.services.data_layer import get_site_by_id, get_sites
     from app.services.intelligence import get_all_effective_capacities as get_all_eff_cap_fn
+    # Clear caches FIRST so we get a fresh object to mutate
+    get_sites.cache_clear()
+    get_all_eff_cap_fn.cache_clear()
     site = get_site_by_id(site_id)
     if not site:
         yield
         return
     original_capacity = site.max_capacity
     site.max_capacity = new_capacity
-    # Clear caches
-    get_sites.cache_clear()
-    get_all_eff_cap_fn.cache_clear()
     try:
         yield
     finally:
@@ -1518,14 +1518,14 @@ def _temporary_site_capacity_change(site_id: str, new_capacity: int):
 def _temporary_route_status_change(route_id: str, new_status: str):
     """Context manager to temporarily change a route's status."""
     from app.services.data_layer import get_route_by_id, get_routes
+    # Clear cache FIRST so we get a fresh object to mutate
+    get_routes.cache_clear()
     route = get_route_by_id(route_id)
     if not route:
         yield
         return
     original_status = route.status
     route.status = new_status
-    # Clear routes cache
-    get_routes.cache_clear()
     try:
         yield
     finally:

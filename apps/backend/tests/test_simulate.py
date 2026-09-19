@@ -14,6 +14,13 @@ def client():
 
 def test_simulate_capacity_change(client):
     """Test what-if simulation with capacity changes."""
+    # Get baseline first
+    baseline_response = client.post("/api/v1/optimization/relocation", json={})
+    assert baseline_response.status_code == 200
+    baseline = baseline_response.json()
+    baseline_capacity = baseline["site_capacities"]["site_001"]["max_capacity"]
+    baseline_unmet = baseline["total_unmet_population"]
+    
     response = client.post(
         "/api/v1/plan/simulate",
         json={"capacity_changes": {"site_001": 8000}},
@@ -42,6 +49,17 @@ def test_simulate_capacity_change(client):
     
     # Check that capacity change was applied
     assert data["changes_applied"]["capacity_changes"] == {"site_001": 8000}
+    
+    # Verify the SIMULATED OUTCOME actually differs from baseline
+    simulated_capacity = plan["site_capacities"]["site_001"]["max_capacity"]
+    simulated_unmet = plan["total_unmet_population"]
+    
+    # The capacity should reflect the change (8000), not the original baseline
+    assert simulated_capacity == 8000, f"Expected simulated capacity 8000, got {simulated_capacity}"
+    
+    # For a capacity increase, total_unmet_population should be <= baseline (could be equal if other constraints bind)
+    # But at minimum, the site capacity should have changed
+    assert simulated_capacity != baseline_capacity, "Site capacity should differ from baseline after simulation"
     
     # Check impact summary
     impact = data["impact_summary"]
