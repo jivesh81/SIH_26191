@@ -1,4 +1,5 @@
 const API_BASE = "http://localhost:8000/api/v1";
+const API_KEY = "aapda-setu-sih-2026-prototype-key";
 
 // =============================================================================
 // Types
@@ -464,6 +465,7 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${url}`, {
     headers: {
       "Content-Type": "application/json",
+      "X-API-Key": API_KEY,
 
       ...(options?.headers || {}),
     },
