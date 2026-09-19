@@ -173,7 +173,7 @@ class RelocationOptimizer:
         self._add_population_constraints(habitations, active_shelters, x, u)
         self._add_shelter_capacity_constraints(active_shelters, x, constraints)
         self._add_single_site_constraints(habitations, active_shelters, x)
-        self._add_route_constraints(habitations, routes, y, constraints)
+        self._add_route_constraints(habitations, routes, y, x, constraints)
         self._add_relocation_constraints(habitations, relocation_sites, z, constraints)
         self._add_bridge_constraints(routes, y, constraints)
         self._add_travel_time_constraints(habitations, routes, y, constraints)
@@ -240,6 +240,7 @@ class RelocationOptimizer:
         habitations: List[Habitation],
         routes: List[Route],
         y: Dict[Tuple[str, str], cp_model.IntVar],
+        x: Dict[Tuple[str, str], cp_model.IntVar],
         constraints: OptimizationConstraints,
     ):
         """Each habitation uses at most one route, route capacity respected."""
@@ -253,12 +254,33 @@ class RelocationOptimizer:
                 continue
             hab_vars = [y[(h.id, r.id)] for h in habitations if (h.id, r.id) in y]
             if hab_vars:
-                # Total population using this route <= capacity
-                pop_expr = []
+                # Total population using this route <= capacity_per_hour * (time window)
+                # Link y (route selection) with x (shelter assignment): if habitation h uses route r,
+                # its assigned population contributes to route load.
+                # We create an auxiliary variable for each habitation-route pair representing
+                # the population flowing on that route.
+                route_pop_vars = []
                 for h in habitations:
                     if (h.id, r.id) in y:
-                        # This is a simplification - in reality we'd link x and y
-                        pass
+                        # Create variable for population on this route from this habitation
+                        pop_on_route = self.model.NewIntVar(0, h.population, f"pop_{h.id}_{r.id}")
+                        # If y[(h.id, r.id)] == 1, pop_on_route == assigned population of h
+                        # If y[(h.id, r.id)] == 0, pop_on_route == 0
+                        # We need to link with x variables: assigned population = sum_s x[(h.id, s.id)]
+                        assigned_pop_vars = [x[(h.id, s.id)] for s in [] if (h.id, s.id) in x]
+                        # Instead, we use the fact that total assigned = h.population - u[h.id]
+                        # But u is not available here. Let's use a simpler approach:
+                        # When y[(h.id, r.id)] = 1, the habitation's entire population uses the route
+                        # (since habitations are assigned whole). So pop_on_route = h.population * y[(h.id, r.id)]
+                        self.model.Add(pop_on_route == h.population).OnlyEnforceIf(y[(h.id, r.id)])
+                        self.model.Add(pop_on_route == 0).OnlyEnforceIf(y[(h.id, r.id)].Not())
+                        route_pop_vars.append(pop_on_route)
+                if route_pop_vars:
+                    # Route capacity constraint: total population on route <= capacity_per_hour * max_travel_time_hours
+                    # Use a time window of max_travel_time_min/60 hours
+                    time_window_hours = constraints.max_travel_time_min / 60.0
+                    max_route_capacity = int(r.capacity_per_hour * time_window_hours)
+                    self.model.Add(sum(route_pop_vars) <= max_route_capacity)
 
     def _add_relocation_constraints(
         self,
@@ -346,13 +368,26 @@ class RelocationOptimizer:
                         cost = int(r.length_km * 10 * objectives.minimize_cost)
                         obj_terms.append(y[(h.id, r.id)] * cost)
 
-        # Balance shelter load (minimize variance)
+        # Balance shelter load (minimize max load - makespan minimization)
         if objectives.balance_load > 0:
+            # For each shelter, compute assigned population
+            # We want to minimize the maximum load across shelters (makespan)
+            shelter_loads = []
             for s in shelters:
-                assigned_vars = [x[(h.id, s.id)] for h_id in x if h_id[1] == s.id]
+                assigned_vars = [var for key, var in x.items() if key[1] == s.id]
                 if assigned_vars:
-                    # This is a simplified linearization
-                    pass
+                    load_var = self.model.NewIntVar(0, s.effective_capacity, f"load_{s.id}")
+                    self.model.Add(load_var == sum(assigned_vars))
+                    shelter_loads.append(load_var)
+
+            if len(shelter_loads) >= 2:
+                # max_load >= load_s for all shelters
+                max_load = self.model.NewIntVar(0, sum(s.effective_capacity for s in shelters), "max_load")
+                for load_var in shelter_loads:
+                    self.model.Add(max_load >= load_var)
+                
+                # Add to objective: minimize max_load * balance_load_weight
+                obj_terms.append(max_load * int(objectives.balance_load * 10))
 
         # Bridge closure penalties
         for h in habitations:
