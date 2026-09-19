@@ -56,24 +56,26 @@ SYNTHETIC_DATA_PARAMS = {
 }
 
 
-def _generate_training_data_from_public_sources(n_samples: int = 5000, seed: int = 42) -> Tuple[np.ndarray, np.ndarray]:
+def _generate_synthetic_training_data(n_samples: int = 5000, seed: int = 42) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Generate training data from realistic distributions based on PUBLIC datasets
-    for Assam flood/landslide risk, NOT from the demo GeoJSON habitations.
+    Generate SYNTHETIC training data from parametric distributions loosely
+    informed by public summary statistics for Assam flood/landslide risk.
+    NOT trained on actual public dataset records.
 
     Features (matching deterministic risk factors + weather/antecedent):
-    - vulnerability_score (0-1): Derived from Census/SECC socioeconomic vulnerability indices
-    - max_hazard_exposure (0-1): Derived from historical flood frequency (ASDMA) + elevation + dist-to-river
-    - population_factor (0-1): Normalized from Census 2011 village populations
-    - accessibility_factor (0 or 0.3): Road access from OSM/Bhuvan road network
-    - priority_factor (0-1): Administrative priority (block-level flood proneness)
-    - rainfall_7d_mm (0-500): 7-day accumulated rainfall from IMD historical records
-    - river_level_m (0-10): River gauge level from CWC stations on Beki/Manas/Kaldia
-    - soil_moisture_pct (0-100): Antecedent soil moisture from NASA SMAP
-    - antecedent_rainfall_30d_mm (0-1000): 30-day antecedent rainfall from IMD
+    - vulnerability_score (0-1): Parametric normal from Census/SECC summary stats
+    - max_hazard_exposure (0-1): Parametric normal from historical flood frequency + proximity
+    - population_factor (0-1): Parametric normal from Census 2011 village population ranges
+    - accessibility_factor (0 or 0.3): Bernoulli from road access percentage
+    - priority_factor (0-1): Uniform discrete from administrative priority ranks
+    - rainfall_7d_mm (0-500): Gamma distribution (loosely informed by IMD monsoon stats)
+    - river_level_m (0-10): Beta distribution (loosely informed by CWC gauge ranges)
+    - soil_moisture_pct (0-100): Beta distribution (loosely informed by NASA SMAP ranges)
+    - antecedent_rainfall_30d_mm (0-1000): Gamma distribution (loosely informed by IMD 30-day stats)
 
     Target: risk level (0=LOW, 1=MEDIUM, 2=HIGH, 3=RED_ZONE)
-    Derived from: historical flood impact severity (ASDMA) + IMD rainfall thresholds
+    Derived from: hand-written threshold cascade using IMD rainfall categories +
+    heuristic river/soil moisture rules, NOT from historical flood outcome records.
     """
     random.seed(seed)
     np.random.seed(seed)
@@ -173,8 +175,8 @@ def _generate_synthetic_history(n_samples: int = 2000, seed: int = 42) -> Tuple[
     Kept for backward compatibility but no longer used.
     """
     import warnings
-    warnings.warn("_generate_synthetic_history is deprecated. Use _generate_training_data_from_public_sources instead.", DeprecationWarning)
-    return _generate_training_data_from_public_sources(n_samples, seed)
+    warnings.warn("_generate_synthetic_history is deprecated. Use _generate_synthetic_training_data instead.", DeprecationWarning)
+    return _generate_synthetic_training_data(n_samples, seed)
 
 
 class RiskPredictor:
@@ -207,8 +209,8 @@ class RiskPredictor:
             self.train()
 
     def train(self, n_samples: int = 5000) -> Dict:
-        """Train the model on data derived from public flood/landslide datasets."""
-        X, y = _generate_training_data_from_public_sources(n_samples=n_samples)
+        """Train the model on synthetic data generated from parametric distributions (NOT actual public dataset records)."""
+        X, y = _generate_synthetic_training_data(n_samples=n_samples)
 
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=0.2, random_state=42, stratify=y
@@ -238,7 +240,7 @@ class RiskPredictor:
 
         # Save model and metadata
         import datetime
-        self.model_version = "random_forest_v2_public_sources"
+        self.model_version = "random_forest_v1_synthetic_heuristic"
         self.trained_at = datetime.datetime.now(datetime.UTC).isoformat().replace("+00:00", "Z")
 
         joblib.dump(self.model, MODEL_PATH)
@@ -251,10 +253,10 @@ class RiskPredictor:
                 "test_accuracy": float(test_acc),
                 "feature_names": self.feature_names,
                 "risk_levels": RISK_LEVEL_ORDER,
-                "data_source": "public_flood_landslide_datasets_assam",
+                "data_source": "synthetic_parametric_distributions",
                 "training_data_sources": SYNTHETIC_DATA_PARAMS,
                 "feature_importances": feature_importance_dict,
-                "disclaimer": "Model trained on statistical distributions from public datasets. NOT official CWC/ASDMA/NDMA flood zonation.",
+                "disclaimer": "Model trained on SYNTHETIC data from parametric distributions and heuristic threshold labels. NOT trained on actual IMD/CWC/NASA/ASDMA records. NOT official CWC/ASDMA/NDMA flood zonation.",
             }, f, indent=2)
 
         return {

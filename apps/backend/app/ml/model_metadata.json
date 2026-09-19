@@ -1,6 +1,6 @@
 {
   "version": "random_forest_v1_synthetic_heuristic",
-  "trained_at": "2026-09-18T20:55:10.464836Z",
+  "trained_at": "2026-09-19T13:09:47.810239Z",
   "n_samples": 5000,
   "train_accuracy": 0.98925,
   "test_accuracy": 0.951,
