@@ -296,6 +296,71 @@ export function MapContainer({ onLoad }: MapContainerProps) {
     area?: any;
   } | null>(null);
 
+  // Watch selectedRouteId from the route picker panel and update highlighted route
+  useEffect(() => {
+    if (!selection.selectedRouteId || !mapRef.current) {
+      return;
+    }
+
+    const fetchAndHighlightRoute = async () => {
+      try {
+        const routeRes = await getRoutes({ open_only: false });
+        const route = routeRes.routes?.find(
+          (r: Route) => r.id === selection.selectedRouteId,
+        );
+        if (route?.geometry) {
+          const feature = {
+            type: "Feature" as const,
+            geometry: route.geometry,
+            properties: {
+              id: route.id,
+              name: route.name,
+            },
+          };
+          const data = makeFeatureCollection([feature]);
+
+          const map = mapRef.current;
+          if (!map) return;
+
+          if (!map.getSource("selected-route")) {
+            map.addSource("selected-route", { type: "geojson", data });
+
+            map.addLayer({
+              id: "selected-route",
+              type: "line",
+              source: "selected-route",
+              paint: {
+                "line-color": "#2563eb",
+                "line-width": 5,
+                "line-opacity": 0.95,
+              },
+            });
+          } else {
+            updateSource(map, "selected-route", data);
+          }
+
+          // Fit map to route
+          const coords = route.geometry.coordinates;
+          if (coords.length >= 2) {
+            const lngs = coords.map((c: any) => c[0]);
+            const lats = coords.map((c: any) => c[1]);
+            map.fitBounds(
+              [
+                [Math.min(...lngs), Math.min(...lats)],
+                [Math.max(...lngs), Math.max(...lats)],
+              ],
+              { padding: 100, duration: 700 },
+            );
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch route for highlighting:", error);
+      }
+    };
+
+    fetchAndHighlightRoute();
+  }, [selection.selectedRouteId]);
+
   // Check route when both habitation and site are selected
   useEffect(() => {
     if (
