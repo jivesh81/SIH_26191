@@ -20,16 +20,13 @@ interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   const { currentView, setCurrentView } = useView();
-  const { layerVisibility, setLayerVisibility } = useMapState();
+  const { layerVisibility, setLayerVisibility, selection } = useMapState();
   const [emergencyDismissed, setEmergencyDismissed] = useState(false);
   const [activePanel, setActivePanel] = useState<ViewName | null>(null);
   const [activeDrawer, setActiveDrawer] = useState<ViewName | null>(null);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
   const [isBottomPanelOpen, setIsBottomPanelOpen] = useState(false);
   const [selectedHabitationForRoutes, setSelectedHabitationForRoutes] = useState<string | null>(null);
-
-  const PANEL_VIEWS: ViewName[] = ["overview", "risk-intelligence", "disaster-simulation", "map-intelligence"];
-  const DRAWER_VIEWS: ViewName[] = ["vulnerable-habitations", "relocation-sites", "plan-approvals", "audit-activity", "relocation-planning", "alerts-telecom", "about-scope"];
 
   const isPanelView = PANEL_VIEWS.includes(currentView);
   const isDrawerView = DRAWER_VIEWS.includes(currentView);
@@ -60,6 +57,14 @@ export function AppShell({ children }: AppShellProps) {
       setActiveDrawer(null);
     }
   }, [currentView]);
+
+  // Task 3a: Open bottom panel when a habitation is selected on the map
+  useEffect(() => {
+    if (selection.selectedHabitationId) {
+      setSelectedHabitationForRoutes(selection.selectedHabitationId);
+      setIsBottomPanelOpen(true);
+    }
+  }, [selection.selectedHabitationId]);
 
   return (
     <div className="relative min-h-screen w-full bg-slate-50">
@@ -149,9 +154,10 @@ function BottomRoutePickerPanel({ isOpen, onClose, habitationId, onHabitationSel
   const [routeCandidates, setRouteCandidates] = useState<RouteCandidate[]>([]);
   const [selectedCandidate, setSelectedCandidate] = useState<RouteCandidate | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const { selection, setSelection, mapInstance } = useMapState();
 
   useEffect(() => {
-    if (!isOpen || !habitationId) {
+    if (!habitationId) {
       setRouteCandidates([]);
       setSelectedCandidate(null);
       return;
@@ -167,24 +173,82 @@ function BottomRoutePickerPanel({ isOpen, onClose, habitationId, onHabitationSel
       })
       .catch((e) => console.error("Failed to load route candidates:", e))
       .finally(() => setIsLoading(false));
-  }, [isOpen, habitationId]);
+  }, [habitationId]);
 
-  if (!isOpen) return null;
+  const handleCandidateSelect = (candidate: RouteCandidate) => {
+    setSelectedCandidate(candidate);
+    // Task 3c: Update selectedRouteId in MapStateContext and fit map to route geometry
+    setSelection({ selectedRouteId: candidate.route_id });
+    if (mapInstance && candidate.geometry) {
+      const coords = candidate.geometry.coordinates;
+      if (coords.length >= 2) {
+        const lngs = coords.map((c: [number, number]) => c[0]);
+        const lats = coords.map((c: [number, number]) => c[1]);
+        mapInstance.fitBounds(
+          [
+            [Math.min(...lngs), Math.min(...lats)],
+            [Math.max(...lngs), Math.max(...lats)],
+          ],
+          { padding: 100, duration: 700 },
+        );
+      }
+    }
+  };
+
+  // Task 3b: Always render the persistent tab handle
+  const renderTabHandle = () => (
+    <button
+      onClick={() => {
+        if (isOpen) {
+          onClose();
+        } else if (habitationId) {
+          onHabitationSelect(habitationId);
+        }
+      }}
+      className="w-full flex items-center justify-center py-2"
+      aria-label={isOpen ? "Close route picker" : "Open route picker"}
+    >
+      <div className="w-10 h-1.5 bg-slate-300 rounded-full relative">
+        <div className="absolute inset-0 bg-slate-300 rounded-full animate-pulse" />
+      </div>
+    </button>
+  );
+
+  if (!isOpen && !habitationId) {
+    return (
+      <div className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none">
+        <div className="mx-auto max-w-4xl pointer-events-auto">
+          <div className="bg-white border-t border-slate-200 rounded-t-2xl shadow-2xl">
+            {renderTabHandle()}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isOpen) {
+    return (
+      <div className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none">
+        <div className="mx-auto max-w-4xl pointer-events-auto">
+          <div className="bg-white border-t border-slate-200 rounded-t-2xl shadow-2xl">
+            {renderTabHandle()}
+            <div className="p-4 max-h-[60vh] overflow-auto hidden">
+              <div className="text-center py-8 text-slate-400">
+                <p>Select a habitation on the map to see evacuation routes</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none">
       <div className="mx-auto max-w-4xl pointer-events-auto">
         <div className="bg-white border-t border-slate-200 rounded-t-2xl shadow-2xl">
-          {/* Tab handle */}
-          <button
-            onClick={onClose}
-            className="w-full flex items-center justify-center py-2"
-            aria-label="Close route picker"
-          >
-            <div className="w-10 h-1.5 bg-slate-300 rounded-full relative">
-              <div className="absolute inset-0 bg-slate-300 rounded-full animate-pulse" />
-            </div>
-          </button>
+          {/* Tab handle - always visible */}
+          {renderTabHandle()}
           
           <div className="p-4 max-h-[60vh] overflow-auto">
             <div className="flex items-center justify-between mb-4">
@@ -214,7 +278,7 @@ function BottomRoutePickerPanel({ isOpen, onClose, habitationId, onHabitationSel
                     {routeCandidates.map((c) => (
                       <button
                         key={c.route_id}
-                        onClick={() => { setSelectedCandidate(c); }}
+                        onClick={() => handleCandidateSelect(c)}
                         className={`w-full text-left p-3 rounded-lg border transition-colors ${
                           c.route_id === selectedCandidate?.route_id 
                             ? "bg-blue-50 border-blue-300 ring-2 ring-blue-200" 
@@ -240,7 +304,7 @@ function BottomRoutePickerPanel({ isOpen, onClose, habitationId, onHabitationSel
               ) : (
                 <div className="text-center py-8 text-slate-400">
                   <svg className="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m-4 0h.01M17 19v-6a2 2 0 00-2-2h-2a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m-4 0h.01" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m-4 0h.01M17 19v-6a2 2 0 00-2-2h-2a2 2 0 002 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m-4 0h.01" />
                   </svg>
                   <p>No evacuation routes found for this habitation</p>
                 </div>
