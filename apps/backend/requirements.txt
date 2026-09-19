@@ -20,6 +20,13 @@ email-validator==2.1.0
 joblib>=1.3.2
 scikit-learn>=1.3.0
 twilio>=8.10.0
+numpy>=1.26.0
+
+# GIS & Spatial
+shapely==2.1.2
+geopandas==1.1.4
+networkx==3.6.1
+pyproj==3.8.0
 
 # Config & Security
 python-dotenv==1.0.0
