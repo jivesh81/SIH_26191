@@ -4,7 +4,7 @@ API Endpoints for Aapda Setu - Core Data Access.
 Provides read-only access to synthetic demo data for Barpeta district.
 """
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Header, Depends
 from typing import List, Optional, Dict
 
 from app.schemas.domain import (
@@ -86,6 +86,20 @@ from app.services.optimization import run_relocation_optimization, run_what_if_s
 from app.services.events import event_service, EventService
 
 router = APIRouter()
+
+
+# Simple API key dependency for write endpoints (prototype-grade)
+# In production, this would be replaced with proper auth (JWT, OAuth, etc.)
+API_KEY = "aapda-setu-sih-2026-prototype-key"
+
+async def verify_api_key(x_api_key: str = Header(None)):
+    """Verify API key for write endpoints."""
+    if x_api_key != API_KEY:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or missing API key. Provide X-API-Key header."
+        )
+    return True
 
 
 # =============================================================================
@@ -1203,6 +1217,7 @@ async def run_what_if_simulation_endpoint(
         "Triggers a disaster event (bridge_collapse or capacity_reduction) "
         "which may invalidate the active relocation plan and trigger re-optimization."
     ),
+    dependencies=[Depends(verify_api_key)],
 )
 async def trigger_event(event: DisasterEvent):
     """
@@ -1305,6 +1320,7 @@ async def get_active_plan():
     tags=["Plan"],
     summary="Approve active plan and trigger SMS dispatch",
     description="Human authority approves the relocation plan, triggering mock SMS notifications.",
+    dependencies=[Depends(verify_api_key)],
 )
 async def approve_plan(request: PlanApprovalRequest):
     """
